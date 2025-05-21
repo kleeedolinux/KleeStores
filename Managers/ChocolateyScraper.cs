@@ -25,7 +25,7 @@ namespace KleeStore.Managers
         public async Task<List<Package>> ScrapePackagesAsync(
             int maxPages = 900, 
             int maxWorkers = 5, 
-            int batchSize = 0,
+            int batchSize = 10,
             Action<List<Package>, int, int>? batchCallback = null,
             CancellationToken cancellationToken = default)
         {
@@ -64,6 +64,7 @@ namespace KleeStore.Managers
             }
             
             int completedPages = 0;
+            int processedPackages = 0;
             
             while (tasks.Count > 0)
             {
@@ -81,10 +82,11 @@ namespace KleeStore.Managers
                             allPackages.AddRange(packages);
                             currentBatch.AddRange(packages);
                             completedPages++;
+                            processedPackages += packages.Count;
                             
                             //console.WriteLine($"Completed page: Added {packages.Count} packages");
                             
-                            if (batchSize > 0 && batchCallback != null && completedPages % batchSize == 0)
+                            if (batchCallback != null && currentBatch.Count >= batchSize)
                             {
                                 //console.WriteLine($"Batch of {currentBatch.Count} packages ready");
                                 var batchCopy = new List<Package>(currentBatch);
@@ -104,7 +106,7 @@ namespace KleeStore.Managers
                 }
             }
             
-            if (batchSize > 0 && batchCallback != null && currentBatch.Count > 0)
+            if (batchCallback != null && currentBatch.Count > 0)
             {
                 var batchCopy = new List<Package>(currentBatch);
                 batchCallback(batchCopy, maxPages, maxPages);

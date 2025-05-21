@@ -136,26 +136,18 @@ namespace KleeStore
         
         public void ProcessScrapedPackages(List<Package> packages, int currentPage, int maxPages)
         {
-            
             Dispatcher.Invoke(() =>
             {
-                
                 if (_currentPage == 1 && string.IsNullOrEmpty(_searchQuery))
                 {
-                    
                     if (EmptyMessage.Visibility == Visibility.Visible)
                     {
                         PackagesContainer.Children.Clear();
                         EmptyMessage.Visibility = Visibility.Collapsed;
                     }
                     
-                    
-                    int currentCount = PackagesContainer.Children.Count;
-                    int toAdd = Math.Min(packages.Count, _itemsPerPage - currentCount);
-                    
-                    for (int i = 0; i < toAdd; i++)
+                    foreach (var package in packages)
                     {
-                        var package = packages[i];
                         var card = new PackageCard(package);
                         card.InstallationChanged += HandleInstallationChange;
                         
@@ -164,6 +156,8 @@ namespace KleeStore
                         
                         PackagesContainer.Children.Add(card);
                     }
+                    
+                    PageLabel.Text = $"Page {_currentPage} - {PackagesContainer.Children.Count} packages";
                 }
             });
         }
