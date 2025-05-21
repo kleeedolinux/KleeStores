@@ -38,41 +38,41 @@ namespace KleeStore
         {
             try
             {
-                Console.WriteLine("Initializing MainWindow...");
+                //console.WriteLine("Initializing MainWindow...");
                 InitializeComponent();
-                Console.WriteLine("InitializeComponent completed");
+                //console.WriteLine("InitializeComponent completed");
                 
                 DataContext = this;
-                Console.WriteLine("DataContext set");
+                //console.WriteLine("DataContext set");
                 
                 
                 _dbManager = DatabaseManager.Instance;
-                Console.WriteLine("DatabaseManager initialized");
+                //console.WriteLine("DatabaseManager initialized");
                 _chocoManager = ChocolateyManager.Instance;
-                Console.WriteLine("ChocolateyManager initialized");
+                //console.WriteLine("ChocolateyManager initialized");
                 
                 
                 IsAdminButtonVisible = !AdminUtils.IsAdmin() ? Visibility.Visible : Visibility.Collapsed;
-                Console.WriteLine("AdminButton visibility set");
+                //console.WriteLine("AdminButton visibility set");
                 
                 
                 _browsePage = new BrowsePage();
-                Console.WriteLine("BrowsePage created");
+                //console.WriteLine("BrowsePage created");
                 _installedPage = new InstalledPage();
-                Console.WriteLine("InstalledPage created");
+                //console.WriteLine("InstalledPage created");
                 
                 
                 ContentFrame.Navigate(_browsePage);
-                Console.WriteLine("Navigated to BrowsePage");
+                //console.WriteLine("Navigated to BrowsePage");
                 
                 
                 CheckChocolatey();
-                Console.WriteLine("CheckChocolatey completed");
+                //console.WriteLine("CheckChocolatey completed");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERROR in MainWindow constructor: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
+                //console.WriteLine($"ERROR in MainWindow constructor: {ex.Message}");
+                //console.WriteLine(ex.StackTrace);
                 MessageBox.Show($"Error initializing main window: {ex.Message}\n\n{ex.StackTrace}", 
                                "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }

@@ -84,11 +84,11 @@ namespace KleeStore.Utilities
                     }
                 }
                 
-                Console.WriteLine($"Loaded {_cache.Count} images from cache");
+                //console.WriteLine($"Loaded {_cache.Count} images from cache");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error loading cached images: {ex.Message}");
+                //console.WriteLine($"Error loading cached images: {ex.Message}");
             }
         }
         
@@ -107,7 +107,7 @@ namespace KleeStore.Utilities
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error saving image to cache: {ex.Message}");
+                //console.WriteLine($"Error saving image to cache: {ex.Message}");
             }
         }
         
@@ -167,7 +167,7 @@ namespace KleeStore.Utilities
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error in download worker: {ex.Message}");
+                    //console.WriteLine($"Error in download worker: {ex.Message}");
                     await Task.Delay(500, _cts.Token);
                 }
             }
@@ -204,7 +204,7 @@ namespace KleeStore.Utilities
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error downloading image {url}: {ex.Message}");
+                //console.WriteLine($"Error downloading image {url}: {ex.Message}");
                 return CreateDefaultImage();
             }
         }

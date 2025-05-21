@@ -29,7 +29,7 @@ namespace KleeStore.Managers
             Action<List<Package>, int, int>? batchCallback = null,
             CancellationToken cancellationToken = default)
         {
-            Console.WriteLine("Starting to scrape Chocolatey packages...");
+            //console.WriteLine("Starting to scrape Chocolatey packages...");
             
             var allPackages = new List<Package>();
             var currentBatch = new List<Package>();
@@ -82,11 +82,11 @@ namespace KleeStore.Managers
                             currentBatch.AddRange(packages);
                             completedPages++;
                             
-                            Console.WriteLine($"Completed page: Added {packages.Count} packages");
+                            //console.WriteLine($"Completed page: Added {packages.Count} packages");
                             
                             if (batchSize > 0 && batchCallback != null && completedPages % batchSize == 0)
                             {
-                                Console.WriteLine($"Batch of {currentBatch.Count} packages ready");
+                                //console.WriteLine($"Batch of {currentBatch.Count} packages ready");
                                 var batchCopy = new List<Package>(currentBatch);
                                 batchCallback(batchCopy, completedPages, maxPages);
                                 currentBatch.Clear();
@@ -95,12 +95,12 @@ namespace KleeStore.Managers
                     }
                     else
                     {
-                        Console.WriteLine("No packages found on page. May have reached the end.");
+                        //console.WriteLine("No packages found on page. May have reached the end.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error processing page: {ex.Message}");
+                    //console.WriteLine($"Error processing page: {ex.Message}");
                 }
             }
             
@@ -110,7 +110,7 @@ namespace KleeStore.Managers
                 batchCallback(batchCopy, maxPages, maxPages);
             }
             
-            Console.WriteLine($"Scraping completed. Found {allPackages.Count} packages.");
+            //console.WriteLine($"Scraping completed. Found {allPackages.Count} packages.");
             
             if (_dbManager != null && allPackages.Count > 0)
             {
@@ -122,7 +122,7 @@ namespace KleeStore.Managers
         
         private async Task<List<Package>> ScrapePageAsync(int pageNumber, string url, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Scraping page {pageNumber}: {url}");
+            //console.WriteLine($"Scraping page {pageNumber}: {url}");
             
             try
             {
@@ -138,7 +138,7 @@ namespace KleeStore.Managers
                 
                 if (packageNodes == null || packageNodes.Count == 0)
                 {
-                    Console.WriteLine($"No packages found on page {pageNumber}.");
+                    //console.WriteLine($"No packages found on page {pageNumber}.");
                     return new List<Package>();
                 }
                 
@@ -156,7 +156,7 @@ namespace KleeStore.Managers
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error extracting package information: {ex.Message}");
+                        //console.WriteLine($"Error extracting package information: {ex.Message}");
                     }
                 }
                 
@@ -164,12 +164,12 @@ namespace KleeStore.Managers
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                Console.WriteLine($"Page {pageNumber} not found (404). Stopping.");
+                //console.WriteLine($"Page {pageNumber} not found (404). Stopping.");
                 return new List<Package>();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error for page {pageNumber}: {ex.Message}");
+                //console.WriteLine($"Error for page {pageNumber}: {ex.Message}");
                 return new List<Package>();
             }
         }
@@ -266,7 +266,7 @@ namespace KleeStore.Managers
                 DetailsUrl = detailsUrl
             };
             
-            Console.WriteLine($"Extracted: {name} ({packageId})");
+            //console.WriteLine($"Extracted: {name} ({packageId})");
             return package;
         }
         
@@ -274,7 +274,7 @@ namespace KleeStore.Managers
         {
             if (_dbManager == null)
             {
-                Console.WriteLine("No database manager provided. Cannot save packages.");
+                //console.WriteLine("No database manager provided. Cannot save packages.");
                 return;
             }
             
@@ -288,7 +288,7 @@ namespace KleeStore.Managers
                 }
             }
             
-            Console.WriteLine($"Successfully saved {successful} out of {packages.Count} packages to database");
+            //console.WriteLine($"Successfully saved {successful} out of {packages.Count} packages to database");
         }
     }
 } 

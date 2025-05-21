@@ -64,7 +64,7 @@ namespace KleeStore.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error creating database connection: {ex.Message}");
+                //console.WriteLine($"Error creating database connection: {ex.Message}");
                 return null;
             }
         }
@@ -93,7 +93,7 @@ namespace KleeStore.Managers
             }
             
             
-            Console.WriteLine("Database connection pool exhausted");
+            //console.WriteLine("Database connection pool exhausted");
             return null;
         }
         
@@ -156,11 +156,11 @@ namespace KleeStore.Managers
                 cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_packages_installed ON packages(is_installed, install_date DESC)";
                 cmd.ExecuteNonQuery();
                 
-                Console.WriteLine("Database tables created");
+                //console.WriteLine("Database tables created");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error creating tables: {ex.Message}");
+                //console.WriteLine($"Error creating tables: {ex.Message}");
             }
             finally
             {
@@ -226,7 +226,7 @@ namespace KleeStore.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error adding/updating package: {ex.Message}");
+                //console.WriteLine($"Error adding/updating package: {ex.Message}");
                 return false;
             }
             finally
@@ -263,7 +263,7 @@ namespace KleeStore.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error searching packages: {ex.Message}");
+                //console.WriteLine($"Error searching packages: {ex.Message}");
             }
             finally
             {
@@ -295,7 +295,7 @@ namespace KleeStore.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting packages: {ex.Message}");
+                //console.WriteLine($"Error getting packages: {ex.Message}");
             }
             finally
             {
@@ -325,7 +325,7 @@ namespace KleeStore.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting installed packages: {ex.Message}");
+                //console.WriteLine($"Error getting installed packages: {ex.Message}");
             }
             finally
             {
@@ -362,7 +362,7 @@ namespace KleeStore.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error updating installation status: {ex.Message}");
+                //console.WriteLine($"Error updating installation status: {ex.Message}");
                 return false;
             }
             finally
@@ -436,7 +436,7 @@ namespace KleeStore.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in batch update: {ex.Message}");
+                //console.WriteLine($"Error in batch update: {ex.Message}");
                 transaction?.Rollback();
             }
             finally
@@ -461,7 +461,7 @@ namespace KleeStore.Managers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting package count: {ex.Message}");
+                //console.WriteLine($"Error getting package count: {ex.Message}");
                 return 0;
             }
             finally
