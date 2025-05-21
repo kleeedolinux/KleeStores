@@ -284,9 +284,9 @@ namespace KleeStore
                     var scraper = new ChocolateyScraper(_dbManager);
                     
                     await scraper.ScrapePackagesAsync(
-                        maxPages: 50,
+                        maxPages: 1000,
                         maxWorkers: 5,
-                        batchSize: 5,
+                        batchSize: 10,
                         batchCallback: ProcessScrapedBatch,
                         cancellationToken: _downloadCts.Token);
                     
