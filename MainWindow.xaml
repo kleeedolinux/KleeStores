@@ -1,0 +1,101 @@
+<Window x:Class="KleeStore.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:KleeStore"
+        mc:Ignorable="d"
+        Title="KleeStore - Software Manager" Height="700" Width="1000" 
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}">
+    
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" 
+                BorderBrush="#e0e0e0" BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- App Logo and Title -->
+                <StackPanel Grid.Row="0" Margin="16,24,16,20">
+                    <TextBlock Text="KleeStore" FontSize="22" FontWeight="Bold" 
+                               Foreground="{StaticResource TextBrush}"/>
+                    <TextBlock Text="Package Manager" FontSize="13" Opacity="0.7" 
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                </StackPanel>
+                
+                <!-- Navigation -->
+                <StackPanel Grid.Row="1" Margin="12,10,12,10">
+                    <Button x:Name="NavBrowse" Content="Browse Software" 
+                            Style="{StaticResource NavButtonActive}" 
+                            Click="NavBrowse_Click"/>
+                    <Button x:Name="NavInstalled" Content="Installed Packages" 
+                            Style="{StaticResource NavButton}" 
+                            Click="NavInstalled_Click"/>
+                </StackPanel>
+                
+                <!-- Admin Button -->
+                <Button x:Name="RunAsAdmin" Grid.Row="2" Content="Run as Administrator" 
+                        Style="{StaticResource ActionButton}" Margin="12,10,12,20" 
+                        Visibility="{Binding IsAdminButtonVisible}" 
+                        Click="RunAsAdmin_Click"/>
+            </Grid>
+        </Border>
+        
+        <!-- Main Content -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Search Bar -->
+            <Border Grid.Row="0" Background="White" BorderBrush="#dfdfdf" BorderThickness="0,0,0,1">
+                <Grid Margin="24,18">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBox x:Name="SearchInput" Grid.Column="0" Style="{StaticResource SearchBox}" 
+                             TextChanged="SearchInput_TextChanged" KeyDown="SearchInput_KeyDown"
+                             Margin="0,0,12,0"/>
+                    
+                    <Button x:Name="SearchButton" Grid.Column="1" Content="Search" 
+                            Style="{StaticResource ActionButton}" 
+                            Click="SearchButton_Click" Margin="0,0,12,0"/>
+                    
+                    <Button x:Name="RefreshButton" Grid.Column="2" Content="Refresh" 
+                            Style="{StaticResource ActionButton}" 
+                            Click="RefreshButton_Click"/>
+                </Grid>
+            </Border>
+            
+            <!-- Progress Bar Area -->
+            <Grid Grid.Row="1" Height="36" Margin="24,0">
+                <ProgressBar x:Name="ProgressBar" Height="6" VerticalAlignment="Center" 
+                             Visibility="Collapsed" Value="0" Maximum="100" 
+                             Foreground="{StaticResource PrimaryBrush}" Background="#e5e5e5" 
+                             BorderThickness="0"/>
+                <TextBlock x:Name="ProgressText" Text="" HorizontalAlignment="Center" 
+                           VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" 
+                           Visibility="Collapsed" FontSize="13"/>
+            </Grid>
+            
+            <!-- Content Area -->
+            <Frame x:Name="ContentFrame" Grid.Row="2" NavigationUIVisibility="Hidden" 
+                   Background="{StaticResource BackgroundBrush}"/>
+        </Grid>
+    </Grid>
+</Window> 
