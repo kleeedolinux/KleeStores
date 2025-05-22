@@ -1,4 +1,6 @@
 # KleeStore
+![image](https://github.com/user-attachments/assets/4527a75e-716d-4f3e-aaf1-cf11d5fcf0df)
+![image](https://github.com/user-attachments/assets/8d8aa245-3105-49e6-84f1-810c6cac12fd)
 
 Let's cut the crap. Managing software on Windows can be a drag. You've got installers from a dozen different places, half of them trying to sneak in extra junk. Then there's Chocolatey – a godsend for us command-line warriors, taming the chaos one `choco install` at a time. But let's face it, not everyone wants to live in a terminal.
 
