@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using KleeStore.Managers;
 using KleeStore.Models;
 using KleeStore.Utilities;
+using System.Threading.Tasks;
 
 namespace KleeStore
 {
@@ -131,7 +132,7 @@ namespace KleeStore
             InstallButton.Style = (Style)Application.Current.Resources[_package.IsInstalled ? "DangerButton" : "ActionButton"];
         }
         
-        private void InstallButton_Click(object sender, RoutedEventArgs e)
+        private async void InstallButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_package.Id))
             {
@@ -141,9 +142,13 @@ namespace KleeStore
             
             try
             {
+                InstallButton.IsEnabled = false;
+                OperationProgress.Visibility = Visibility.Visible;
+                OperationProgress.IsIndeterminate = true;
+                
                 if (_package.IsInstalled)
                 {
-                    var (success, message) = _chocoManager.UninstallPackage(_package.Id);
+                    var (success, message) = await Task.Run(() => _chocoManager.UninstallPackage(_package.Id));
                     if (success)
                     {
                         _package.IsInstalled = false;
@@ -172,7 +177,7 @@ namespace KleeStore
                 }
                 else
                 {
-                    var (success, message) = _chocoManager.InstallPackage(_package.Id);
+                    var (success, message) = await Task.Run(() => _chocoManager.InstallPackage(_package.Id));
                     if (success)
                     {
                         var installDate = DateTime.Now.ToString("o");
@@ -208,9 +213,15 @@ namespace KleeStore
             {
                 ShowMessage("Error", $"An error occurred: {ex.Message}");
             }
+            finally
+            {
+                InstallButton.IsEnabled = true;
+                OperationProgress.Visibility = Visibility.Collapsed;
+                OperationProgress.IsIndeterminate = false;
+            }
         }
         
-        private void UpdateButton_Click(object sender, RoutedEventArgs e)
+        private async void UpdateButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_package.Id))
             {
@@ -220,7 +231,11 @@ namespace KleeStore
             
             try
             {
-                var (success, message) = _chocoManager.UpgradePackage(_package.Id);
+                UpdateButton.IsEnabled = false;
+                OperationProgress.Visibility = Visibility.Visible;
+                OperationProgress.IsIndeterminate = true;
+                
+                var (success, message) = await Task.Run(() => _chocoManager.UpgradePackage(_package.Id));
                 if (success)
                 {
                     _package.Version = _package.AvailableVersion;
@@ -256,6 +271,12 @@ namespace KleeStore
             catch (Exception ex)
             {
                 ShowMessage("Error", $"An error occurred: {ex.Message}");
+            }
+            finally
+            {
+                UpdateButton.IsEnabled = true;
+                OperationProgress.Visibility = Visibility.Collapsed;
+                OperationProgress.IsIndeterminate = false;
             }
         }
         

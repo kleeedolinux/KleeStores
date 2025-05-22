@@ -50,6 +50,9 @@
             
             <!-- Action Buttons -->
             <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <ProgressBar x:Name="OperationProgress" Height="2" Width="110" 
+                            Margin="0,0,0,8" Visibility="Collapsed"/>
+                
                 <Button x:Name="UpdateButton" Content="Update" 
                         Style="{StaticResource ActionButton}" 
                         Width="110" Margin="0,0,0,8" 

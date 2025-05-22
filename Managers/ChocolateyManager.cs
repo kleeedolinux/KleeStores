@@ -58,10 +58,11 @@ namespace KleeStore.Managers
                 var psi = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-Command \"Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass -File {scriptPath}' -Verb RunAs -Wait\"",
+                    Arguments = $"-Command \"Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass -File {scriptPath}' -Verb RunAs -Wait -WindowStyle Hidden\"",
                     CreateNoWindow = true,
                     UseShellExecute = true,
-                    Verb = "runas"
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
                 using var process = Process.Start(psi);
@@ -102,7 +103,8 @@ namespace KleeStore.Managers
                     Arguments = "list --local-only --limit-output",
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
                 using var process = Process.Start(psi);
@@ -164,7 +166,8 @@ namespace KleeStore.Managers
                     Arguments = "outdated --limit-output",
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
                 using var process = Process.Start(psi);
@@ -223,9 +226,10 @@ namespace KleeStore.Managers
                 var psi = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'upgrade all -y' -Verb RunAs -Wait\"",
+                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'upgrade all -y' -Verb RunAs -Wait -WindowStyle Hidden\"",
                     UseShellExecute = true,
-                    Verb = "runas"
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
                 using var process = Process.Start(psi);
@@ -268,9 +272,10 @@ namespace KleeStore.Managers
                 var psi = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'install {packageId} -y' -Verb RunAs -Wait\"",
+                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'install {packageId} -y' -Verb RunAs -Wait -WindowStyle Hidden\"",
                     UseShellExecute = true,
-                    Verb = "runas"
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
                 using var process = Process.Start(psi);
@@ -312,9 +317,10 @@ namespace KleeStore.Managers
                 var psi = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'uninstall {packageId} -y' -Verb RunAs -Wait\"",
+                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'uninstall {packageId} -y' -Verb RunAs -Wait -WindowStyle Hidden\"",
                     UseShellExecute = true,
-                    Verb = "runas"
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
                 using var process = Process.Start(psi);
@@ -352,7 +358,8 @@ namespace KleeStore.Managers
                     Arguments = $"search {query} --limit-output",
                     RedirectStandardOutput = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
                 using var process = Process.Start(psi);
@@ -415,9 +422,10 @@ namespace KleeStore.Managers
                 var psi = new ProcessStartInfo
                 {
                     FileName = "powershell.exe",
-                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'upgrade {packageId} -y' -Verb RunAs -Wait\"",
+                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'upgrade {packageId} -y' -Verb RunAs -Wait -WindowStyle Hidden\"",
                     UseShellExecute = true,
-                    Verb = "runas"
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
                 
                 using var process = Process.Start(psi);
