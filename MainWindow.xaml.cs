@@ -261,10 +261,8 @@ namespace KleeStore
                 return;
             }
             
-            
             _processedPackages = 0;
-            UpdateProgress(true, "Initializing download...", 1);
-            
+            UpdateProgress(true, "Initializing API connection...", 1);
             
             if (ContentFrame.Content != _browsePage)
             {
@@ -273,11 +271,9 @@ namespace KleeStore
                 NavInstalled.Style = (Style)Application.Current.Resources["NavButton"];
             }
             
-            
             _isDownloading = true;
             _downloadCts?.Cancel();
             _downloadCts = new CancellationTokenSource();
-            
             
             Task.Factory.StartNew(async () => 
             {
@@ -285,18 +281,19 @@ namespace KleeStore
                 {
                     await Task.Delay(100); 
                     
-                    
                     Dispatcher.BeginInvoke(new Action(() => 
                     {
-                        UpdateProgress(true, "Connecting to Chocolatey...", 5);
+                        UpdateProgress(true, "Connecting to Chocolatey API...", 5);
                     }), System.Windows.Threading.DispatcherPriority.Background);
                     
-                    var scraper = new ChocolateyScraper(_dbManager);
+                    var scraper = new ChocolateyScraper();
+                    var paginationInfo = await scraper.GetPaginationInfoAsync(_downloadCts.Token);
+                    int totalPages = paginationInfo?.Pagination?.Pages ?? 3;
                     
-                    await scraper.ScrapePackagesAsync(
-                        maxPages: 500, 
-                        maxWorkers: 2, 
-                        batchSize: 5,  
+                    
+                    var packages = await scraper.GetPackagesAsync(
+                        page: 1,
+                        limit: 20,
                         batchCallback: ProcessScrapedBatch,
                         cancellationToken: _downloadCts.Token);
                     
@@ -305,11 +302,11 @@ namespace KleeStore
                         try
                         {
                             UpdateProgress(false, "", 0);
-                            _browsePage.DisplayPackages();
+                            _browsePage.ProcessScrapedPackages(packages, 1, totalPages);
                         }
-                        catch
+                        catch (Exception ex)
                         {
-                            
+                            Console.WriteLine($"Error updating UI: {ex.Message}");
                         }
                     }), System.Windows.Threading.DispatcherPriority.Background);
                 }
@@ -334,6 +331,7 @@ namespace KleeStore
                         try
                         {
                             UpdateProgress(false, "", 0);
+                            MessageBox.Show($"Error connecting to API: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                         catch
                         {
@@ -361,18 +359,20 @@ namespace KleeStore
                     {
                         UpdateProgress(true, $"Downloaded {_processedPackages} packages from page {currentPage} of {totalPages}", progressValue);
                         
-                        if (_processedPackages % 10 == 0 || currentPage % 5 == 0)
+                        if (_processedPackages % 10 == 0 || currentPage % 2 == 0)
                         {
                             _browsePage.ProcessScrapedPackages(packages, currentPage, totalPages);
                         }
                     }
                     catch (Exception ex)
                     {
+                        Console.WriteLine($"Error processing batch: {ex.Message}");
                     }
                 }, System.Windows.Threading.DispatcherPriority.Background);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error in ProcessScrapedBatch: {ex.Message}");
             }
         }
         

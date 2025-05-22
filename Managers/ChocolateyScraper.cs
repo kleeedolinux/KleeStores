@@ -1,301 +1,261 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using HtmlAgilityPack;
 using KleeStore.Models;
 
 namespace KleeStore.Managers
 {
     public class ChocolateyScraper
     {
-        private readonly string _baseUrl = "https://community.chocolatey.org/packages";
+        private readonly string _baseApiUrl = "https://kleestoreapi.vercel.app/api/packages";
         private readonly HttpClient _httpClient;
-        private readonly DatabaseManager _dbManager;
+        private readonly int _packagesPerPage = 20;
+        private readonly int _maxRequestsPerMinute = 10;
+        private readonly SemaphoreSlim _rateLimitSemaphore;
+        private DateTime _lastRequestTime = DateTime.MinValue;
         
-        public ChocolateyScraper(DatabaseManager? dbManager = null)
+        public ChocolateyScraper()
         {
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "KleeStore Software Manager");
-            _dbManager = dbManager ?? DatabaseManager.Instance;
+            _rateLimitSemaphore = new SemaphoreSlim(_maxRequestsPerMinute, _maxRequestsPerMinute);
         }
         
-        public async Task<List<Package>> ScrapePackagesAsync(
-            int maxPages = 900, 
-            int maxWorkers = 5, 
-            int batchSize = 10,
+        public async Task<List<Package>> GetPackagesAsync(
+            int page = 1,
+            int limit = 20,
+            string? searchQuery = null,
             Action<List<Package>, int, int>? batchCallback = null,
             CancellationToken cancellationToken = default)
         {
-            var allPackages = new List<Package>();
-            var currentBatch = new List<Package>();
-            
-            
-            int pagesPerChunk = 10;
-            int completedPages = 0;
-            int processedPackages = 0;
-            
-            
-            for (int chunkStart = 1; chunkStart <= maxPages; chunkStart += pagesPerChunk)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-                
-                int chunkEnd = Math.Min(chunkStart + pagesPerChunk - 1, maxPages);
-                var pageUrls = new List<(int PageNumber, string Url)>();
-                
-                
-                for (int pageNumber = chunkStart; pageNumber <= chunkEnd; pageNumber++)
-                {
-                    var url = $"{_baseUrl}?sortOrder=package-download-count&page={pageNumber}&prerelease=False&moderatorQueue=False&moderationStatus=all-statuses";
-                    pageUrls.Add((pageNumber, url));
-                }
-                
-                using var semaphore = new SemaphoreSlim(maxWorkers);
-                var tasks = new List<Task<List<Package>>>();
-                
-                
-                foreach (var (pageNumber, url) in pageUrls)
-                {
-                    await semaphore.WaitAsync(cancellationToken);
-                    
-                    var task = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            return await ScrapePageAsync(pageNumber, url, cancellationToken);
-                        }
-                        finally
-                        {
-                            semaphore.Release();
-                        }
-                    }, cancellationToken);
-                    
-                    tasks.Add(task);
-                }
-                
-                
-                while (tasks.Count > 0)
-                {
-                    var completedTask = await Task.WhenAny(tasks);
-                    tasks.Remove(completedTask);
-                    
-                    try
-                    {
-                        var packages = await completedTask;
-                        
-                        if (packages.Count > 0)
-                        {
-                            lock (allPackages)
-                            {
-                                allPackages.AddRange(packages);
-                                currentBatch.AddRange(packages);
-                                completedPages++;
-                                processedPackages += packages.Count;
-                                
-                                if (batchCallback != null && currentBatch.Count >= batchSize)
-                                {
-                                    var batchCopy = new List<Package>(currentBatch);
-                                    batchCallback(batchCopy, completedPages, maxPages);
-                                    currentBatch.Clear();
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        
-                    }
-                }
-                
-                
-                if (batchCallback != null && currentBatch.Count > 0)
-                {
-                    var batchCopy = new List<Package>(currentBatch);
-                    batchCallback(batchCopy, completedPages, maxPages);
-                    currentBatch.Clear();
-                }
-            }
-            
-            if (_dbManager != null && allPackages.Count > 0)
-            {
-                SaveToDatabase(allPackages);
-            }
-            
-            return allPackages;
-        }
-        
-        private async Task<List<Package>> ScrapePageAsync(int pageNumber, string url, CancellationToken cancellationToken)
-        {
-            
+            var packages = new List<Package>();
             
             try
             {
-                var response = await _httpClient.GetAsync(url, cancellationToken);
-                response.EnsureSuccessStatusCode();
-                
-                var content = await response.Content.ReadAsStringAsync();
-                
-                var doc = new HtmlDocument();
-                doc.LoadHtml(content);
-                
-                var packageNodes = doc.DocumentNode.SelectNodes("//ul[contains(@class, 'list-unstyled') and contains(@class, 'pt-3') and contains(@class, 'package-list-view')]/li");
-                
-                if (packageNodes == null || packageNodes.Count == 0)
+                string apiUrl;
+                if (!string.IsNullOrEmpty(searchQuery))
                 {
-                    
-                    return new List<Package>();
+                    apiUrl = $"{_baseApiUrl}/search?q={Uri.EscapeDataString(searchQuery)}&page={page}&limit={limit}";
+                }
+                else
+                {
+                    apiUrl = $"{_baseApiUrl}?page={page}&limit={limit}&sort=downloads";
                 }
                 
-                var pagePackages = new List<Package>();
-                
-                foreach (var packageNode in packageNodes)
+                await _rateLimitSemaphore.WaitAsync(cancellationToken);
+                try
                 {
-                    try
+                  
+                    var timeSinceLastRequest = DateTime.Now - _lastRequestTime;
+                    if (timeSinceLastRequest.TotalSeconds < 6 && _lastRequestTime != DateTime.MinValue)
                     {
-                        var package = ExtractPackageInfo(packageNode);
-                        if (package != null)
+                        await Task.Delay(TimeSpan.FromSeconds(6) - timeSinceLastRequest, cancellationToken);
+                    }
+                    
+                    var response = await _httpClient.GetAsync(apiUrl, cancellationToken);
+                    _lastRequestTime = DateTime.Now;
+                    
+                    if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    {
+                        if (response.Headers.TryGetValues("Retry-After", out var values))
                         {
-                            pagePackages.Add(package);
+                            if (int.TryParse(values.FirstOrDefault(), out int seconds))
+                            {
+                                Console.WriteLine($"Rate limited: Waiting {seconds} seconds before retrying");
+                                await Task.Delay(TimeSpan.FromSeconds(seconds), cancellationToken);
+                                response = await _httpClient.GetAsync(apiUrl, cancellationToken);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Rate limited: Waiting 60 seconds before retrying");
+                            await Task.Delay(TimeSpan.FromSeconds(60), cancellationToken);
+                            response = await _httpClient.GetAsync(apiUrl, cancellationToken);
                         }
                     }
-                    catch (Exception ex)
+                    
+                    response.EnsureSuccessStatusCode();
+                    
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var apiResponse = JsonSerializer.Deserialize<ApiResponse>(json, new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    });
+                    
+                    if (apiResponse != null && apiResponse.Packages != null)
                     {
+                        foreach (var apiPackage in apiResponse.Packages)
+                        {
+                            var package = new Package
+                            {
+                                Id = apiPackage.Id,
+                                Name = apiPackage.Name,
+                                Version = apiPackage.Version,
+                                Description = apiPackage.Description,
+                                ImageUrl = apiPackage.ImageUrl,
+                                InstallCommand = apiPackage.InstallCommand,
+                                Downloads = apiPackage.Downloads,
+                                DetailsUrl = apiPackage.DetailsUrl
+                            };
+                            
+                            packages.Add(package);
+                        }
                         
+                        if (batchCallback != null && apiResponse.Pagination != null)
+                        {
+                            batchCallback(packages, apiResponse.Pagination.Page, apiResponse.Pagination.Pages);
+                        }
+                        
+                        return packages;
                     }
                 }
-                
-                return pagePackages;
-            }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                
-                return new List<Package>();
+                finally
+                {
+                    _rateLimitSemaphore.Release();
+                }
             }
             catch (Exception ex)
             {
-                
-                return new List<Package>();
+                Console.WriteLine($"Error fetching packages: {ex.Message}");
             }
+            
+            return packages;
         }
         
-        private Package? ExtractPackageInfo(HtmlNode packageNode)
+        public async Task<ApiResponse?> GetPaginationInfoAsync(CancellationToken cancellationToken = default)
         {
-            var nameElement = packageNode.SelectSingleNode(".//a[contains(@class, 'h5') and contains(@class, 'fw-bold')]");
-            if (nameElement == null) return null;
-            
-            var fullName = nameElement.InnerText.Trim();
-            var nameParts = fullName.Split(' ');
-            
-            string name, version;
-            
-            if (nameParts.Length > 1)
+            try
             {
-                version = nameParts[^1];
-                name = string.Join(" ", nameParts, 0, nameParts.Length - 1);
-            }
-            else
-            {
-                name = fullName;
-                version = "Unknown";
-            }
-            
-            var imgElement = packageNode.SelectSingleNode(".//div[contains(@class, 'package-icon')]//img");
-            var imageUrl = imgElement?.GetAttributeValue("src", "No image") ?? "No image";
-            
-            if (!string.IsNullOrEmpty(imageUrl) && !imageUrl.StartsWith("http"))
-            {
-                imageUrl = $"https://community.chocolatey.org{imageUrl}";
-            }
-            
-            var descriptionElement = packageNode.SelectSingleNode(".//p[contains(@class, 'mt-2') and contains(@class, 'mb-0') and contains(@class, 'package-list-align')]");
-            var description = descriptionElement?.InnerText.Trim() ?? "No description";
-            
-            var commandInput = packageNode.SelectSingleNode(".//input[contains(@class, 'form-control')]");
-            var installCommand = commandInput?.GetAttributeValue("value", "Unknown") ?? "Unknown";
-            
-            string? packageId = null;
-            
-            if (installCommand.StartsWith("choco install "))
-            {
-                packageId = installCommand.Replace("choco install ", "").Trim();
-            }
-            else
-            {
-                var link = packageNode.SelectSingleNode(".//a[starts-with(@href, '/packages/')]");
-                if (link != null)
+                await _rateLimitSemaphore.WaitAsync(cancellationToken);
+                try
                 {
-                    var href = link.GetAttributeValue("href", "");
-                    if (!string.IsNullOrEmpty(href))
+                    
+                    var timeSinceLastRequest = DateTime.Now - _lastRequestTime;
+                    if (timeSinceLastRequest.TotalSeconds < 6 && _lastRequestTime != DateTime.MinValue)
                     {
-                        var parts = href.Split('/');
-                        if (parts.Length > 0)
-                        {
-                            packageId = parts[^1];
-                        }
+                        await Task.Delay(TimeSpan.FromSeconds(6) - timeSinceLastRequest, cancellationToken);
                     }
+                    var response = await _httpClient.GetAsync($"{_baseApiUrl}?page=1&limit=1", cancellationToken);
+                    _lastRequestTime = DateTime.Now;
+                    
+                    response.EnsureSuccessStatusCode();
+                    
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var apiResponse = JsonSerializer.Deserialize<ApiResponse>(json, new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    });
+                    
+                    return apiResponse;
                 }
-            }
-            
-            if (string.IsNullOrEmpty(packageId))
-            {
-                packageId = name.ToLowerInvariant().Replace(" ", "-");
-            }
-            
-            var downloadsElement = packageNode.SelectSingleNode(".//span[contains(@class, 'badge')]");
-            var downloads = 0;
-            
-            if (downloadsElement != null)
-            {
-                var downloadsText = downloadsElement.InnerText.Trim();
-                var downloadsMatch = Regex.Match(downloadsText, @"([\d,]+)\s*Downloads");
-                
-                if (downloadsMatch.Success)
+                finally
                 {
-                    var downloadsStr = downloadsMatch.Groups[1].Value.Replace(",", "");
-                    int.TryParse(downloadsStr, out downloads);
+                    _rateLimitSemaphore.Release();
                 }
             }
-            
-            var detailsUrl = $"https://community.chocolatey.org/packages/{packageId}";
-            
-            var package = new Package
+            catch (Exception ex)
             {
-                Id = packageId,
-                Name = name.Trim(),
-                Version = version.Trim(),
-                Description = description,
-                ImageUrl = imageUrl,
-                InstallCommand = installCommand,
-                Downloads = downloads,
-                DetailsUrl = detailsUrl
-            };
-            
-            
-            return package;
+                Console.WriteLine($"Error getting pagination info: {ex.Message}");
+                return null;
+            }
         }
         
-        private void SaveToDatabase(List<Package> packages)
+        public async Task<Package?> GetPackageByIdAsync(string packageId, CancellationToken cancellationToken = default)
         {
-            if (_dbManager == null)
+            try
             {
-                
-                return;
-            }
-            
-            int successful = 0;
-            
-            foreach (var package in packages)
-            {
-                if (_dbManager.AddOrUpdatePackage(package))
+                await _rateLimitSemaphore.WaitAsync(cancellationToken);
+                try
                 {
-                    successful++;
+                   
+                    var timeSinceLastRequest = DateTime.Now - _lastRequestTime;
+                    if (timeSinceLastRequest.TotalSeconds < 6 && _lastRequestTime != DateTime.MinValue)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(6) - timeSinceLastRequest, cancellationToken);
+                    }
+                    
+                    var response = await _httpClient.GetAsync($"{_baseApiUrl}/{packageId}", cancellationToken);
+                    _lastRequestTime = DateTime.Now;
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return null;
+                    }
+                    
+                    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var apiResponse = JsonSerializer.Deserialize<PackageResponse>(json, new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    });
+                    
+                    if (apiResponse?.Package != null)
+                    {
+                        var apiPackage = apiResponse.Package;
+                        return new Package
+                        {
+                            Id = apiPackage.Id,
+                            Name = apiPackage.Name,
+                            Version = apiPackage.Version,
+                            Description = apiPackage.Description,
+                            ImageUrl = apiPackage.ImageUrl,
+                            InstallCommand = apiPackage.InstallCommand,
+                            Downloads = apiPackage.Downloads,
+                            DetailsUrl = apiPackage.DetailsUrl
+                        };
+                    }
+                    
+                    return null;
+                }
+                finally
+                {
+                    _rateLimitSemaphore.Release();
                 }
             }
-            
-            
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching package by ID: {ex.Message}");
+                return null;
+            }
+        }
+        
+        public class ApiResponse
+        {
+            public List<ApiPackage> Packages { get; set; } = new List<ApiPackage>();
+            public ApiPagination Pagination { get; set; } = new ApiPagination();
+            public string? Query { get; set; }
+        }
+        
+        public class PackageResponse
+        {
+            public ApiPackage Package { get; set; } = new ApiPackage();
+        }
+        
+        public class ApiPackage
+        {
+            public string _id { get; set; } = string.Empty;
+            public string Id { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string Version { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public string ImageUrl { get; set; } = string.Empty;
+            public string InstallCommand { get; set; } = string.Empty;
+            public int Downloads { get; set; }
+            public string DetailsUrl { get; set; } = string.Empty;
+            public int __v { get; set; }
+            public string CreatedAt { get; set; } = string.Empty;
+            public string UpdatedAt { get; set; } = string.Empty;
+            public string LastUpdated { get; set; } = string.Empty;
+        }
+        
+        public class ApiPagination
+        {
+            public int Page { get; set; }
+            public int Limit { get; set; }
+            public int Total { get; set; }
+            public int Pages { get; set; }
         }
     }
 } 

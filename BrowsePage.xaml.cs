@@ -11,110 +11,130 @@ namespace KleeStore
 {
     public partial class BrowsePage : Page
     {
-        private readonly DatabaseManager _dbManager;
         private readonly ChocolateyManager _chocoManager;
+        private readonly ChocolateyScraper _scraper;
         private int _currentPage = 1;
-        private int _itemsPerPage = 30;
+        private int _totalPages = 1;
+        private int _itemsPerPage = 20;
         private string _searchQuery = string.Empty;
         private CancellationTokenSource? _scraperCts;
+        private bool _isLoading = false;
         
         public BrowsePage()
         {
             InitializeComponent();
             
-            _dbManager = DatabaseManager.Instance;
             _chocoManager = ChocolateyManager.Instance;
+            _scraper = new ChocolateyScraper();
             
-            DisplayPackages();
+            LoadInitialData();
         }
         
-        public List<Package> DisplayPackages(string? searchQuery = null)
+        private async void LoadInitialData()
         {
-            
-            _searchQuery = searchQuery ?? string.Empty;
-            
-            
-            PackagesContainer.Children.Clear();
-            PackagesContainer.Children.Add(EmptyMessage);
-            
-            
-            int offset = (_currentPage - 1) * _itemsPerPage;
-            
-            
-            PageLabel.Text = $"Page {_currentPage}";
-            
-            
-            List<Package> packages;
-            
-            if (!string.IsNullOrEmpty(_searchQuery))
+            try
             {
-                packages = _dbManager.SearchPackages(_searchQuery, _itemsPerPage, offset);
+                
+                var paginationInfo = await _scraper.GetPaginationInfoAsync();
+                if (paginationInfo?.Pagination != null)
+                {
+                    _totalPages = paginationInfo.Pagination.Pages;
+                }
+                
+                await LoadPackages();
             }
-            else
+            catch (Exception ex)
             {
-                packages = _dbManager.GetAllPackages(_itemsPerPage, offset);
+                Console.WriteLine($"Error loading initial data: {ex.Message}");
             }
+        }
+        
+        public async Task<List<Package>> DisplayPackages(string? searchQuery = null)
+        {
+            if (_isLoading) return new List<Package>();
+            _isLoading = true;
             
-            
-            if (packages.Count == 0)
+            try
             {
-                if (string.IsNullOrEmpty(_searchQuery) && _dbManager.GetPackageCount() == 0)
+                _searchQuery = searchQuery ?? string.Empty;
+                
+                PackagesContainer.Children.Clear();
+                PackagesContainer.Children.Add(EmptyMessage);
+                
+                EmptyMessage.TextWrapping = TextWrapping.Wrap;
+                EmptyMessage.Text = "Loading packages...";
+                EmptyMessage.Visibility = Visibility.Visible;
+                
+                return await LoadPackages();
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+        
+        private async Task<List<Package>> LoadPackages()
+        {
+            try
+            {
+                _scraperCts?.Cancel();
+                _scraperCts = new CancellationTokenSource();
+                
+                PageLabel.Text = $"Page {_currentPage} of {_totalPages}";
+                
+                var packages = await _scraper.GetPackagesAsync(
+                    page: _currentPage,
+                    limit: _itemsPerPage,
+                    searchQuery: _searchQuery,
+                    cancellationToken: _scraperCts.Token);
+                
+                if (packages.Count == 0)
+                {
+                    if (string.IsNullOrEmpty(_searchQuery))
+                    {
+                        EmptyMessage.Text = "No packages found. The API may be unavailable.";
+                    }
+                    else
+                    {
+                        EmptyMessage.Text = $"No packages found for '{_searchQuery}'";
+                    }
+                    EmptyMessage.Visibility = Visibility.Visible;
+                    
+                    return packages;
+                }
+                
+                EmptyMessage.Visibility = Visibility.Collapsed;
+                PackagesContainer.Children.Clear();
+                
+                UpdateInstalledStatus(packages);
+                
+                foreach (var package in packages)
                 {
                     try
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            EmptyMessage.TextWrapping = TextWrapping.Wrap;
-                            EmptyMessage.Text = "No packages found. Click on Refresh button...\n\nFirst time setup in progress. This may take a few minutes. Please wait...";
-                            EmptyMessage.Visibility = Visibility.Visible;
-                        });
+                        var card = new PackageCard(package);
+                        card.InstallationChanged += HandleInstallationChange;
                         
-                        var mainWindow = Window.GetWindow(this) as MainWindow;
-                        if (mainWindow != null)
-                        {
-                            Dispatcher.Invoke(() => mainWindow.StartDownload());
-                        }
+                        card.MinWidth = 400;
+                        card.MaxWidth = 800;
+                        
+                        PackagesContainer.Children.Add(card);
                     }
                     catch (Exception ex)
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            EmptyMessage.Text = "Error initializing. Please restart the application.";
-                            EmptyMessage.Visibility = Visibility.Visible;
-                        });
+                        Console.WriteLine($"Error creating package card: {ex.Message}");
                     }
-                }
-                else
-                {
-                    
-                    EmptyMessage.Text = string.IsNullOrEmpty(_searchQuery)
-                        ? "No more packages to display"
-                        : $"No packages found for '{_searchQuery}'";
-                    EmptyMessage.Visibility = Visibility.Visible;
                 }
                 
                 return packages;
             }
-            
-            
-            EmptyMessage.Visibility = Visibility.Collapsed;
-            
-            
-            UpdateInstalledStatus(packages);
-            
-            
-            foreach (var package in packages)
+            catch (Exception ex)
             {
-                var card = new PackageCard(package);
-                card.InstallationChanged += HandleInstallationChange;
-                
-                card.MinWidth = 400;
-                card.MaxWidth = 800;
-                
-                PackagesContainer.Children.Add(card);
+                Console.WriteLine($"Error loading packages: {ex.Message}");
+                EmptyMessage.Text = $"Error loading packages: {ex.Message}";
+                EmptyMessage.Visibility = Visibility.Visible;
+                return new List<Package>();
             }
-            
-            return packages;
         }
         
         private void UpdateInstalledStatus(List<Package> packages)
@@ -132,7 +152,6 @@ namespace KleeStore
                 if (installedIds.Contains(package.Id))
                 {
                     package.IsInstalled = true;
-                    _dbManager.UpdatePackageInstallationStatus(package.Id, true);
                 }
             }
         }
@@ -140,7 +159,7 @@ namespace KleeStore
         private void HandleInstallationChange(string packageId, bool isInstalled)
         {
             
-            DisplayPackages(_searchQuery);
+            _ = LoadPackages();
             
             
             var mainWindow = Window.GetWindow(this) as MainWindow;
@@ -158,41 +177,45 @@ namespace KleeStore
                 {
                     try
                     {
-                        if (_currentPage == 1 && string.IsNullOrEmpty(_searchQuery))
+                        _totalPages = totalPages;
+                        
+                        if (EmptyMessage.Visibility == Visibility.Visible)
                         {
-                            if (EmptyMessage.Visibility == Visibility.Visible)
-                            {
-                                PackagesContainer.Children.Clear();
-                                EmptyMessage.Visibility = Visibility.Collapsed;
-                            }
-                            
-                            foreach (var package in packages)
-                            {
-                                try
-                                {
-                                    var card = new PackageCard(package);
-                                    card.InstallationChanged += HandleInstallationChange;
-                                    
-                                    card.MinWidth = 400;
-                                    card.MaxWidth = 800;
-                                    
-                                    PackagesContainer.Children.Add(card);
-                                }
-                                catch
-                                {
-                                }
-                            }
-                            
-                            PageLabel.Text = $"Page {_currentPage} - {PackagesContainer.Children.Count} packages";
+                            PackagesContainer.Children.Clear();
+                            EmptyMessage.Visibility = Visibility.Collapsed;
                         }
+                        
+                        UpdateInstalledStatus(packages);
+                        
+                        foreach (var package in packages)
+                        {
+                            try
+                            {
+                                var card = new PackageCard(package);
+                                card.InstallationChanged += HandleInstallationChange;
+                                
+                                card.MinWidth = 400;
+                                card.MaxWidth = 800;
+                                
+                                PackagesContainer.Children.Add(card);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error creating package card: {ex.Message}");
+                            }
+                        }
+                        
+                        PageLabel.Text = $"Page {_currentPage} of {totalPages} - {PackagesContainer.Children.Count} packages";
                     }
                     catch (Exception ex)
                     {
+                        Console.WriteLine($"Error processing scraped packages: {ex.Message}");
                     }
                 }, System.Windows.Threading.DispatcherPriority.Background);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error invoking dispatcher: {ex.Message}");
             }
         }
         
@@ -207,20 +230,16 @@ namespace KleeStore
             if (_currentPage > 1)
             {
                 _currentPage--;
-                DisplayPackages(_searchQuery);
+                _ = LoadPackages();
             }
         }
         
         private void NextPageButton_Click(object sender, RoutedEventArgs e)
         {
-            _currentPage++;
-            var packages = DisplayPackages(_searchQuery);
-            
-            
-            if (EmptyMessage.Visibility == Visibility.Visible && _currentPage > 1)
+            if (_currentPage < _totalPages)
             {
-                _currentPage--;
-                DisplayPackages(_searchQuery);
+                _currentPage++;
+                _ = LoadPackages();
             }
         }
     }
