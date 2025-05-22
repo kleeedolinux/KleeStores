@@ -11,7 +11,7 @@ namespace KleeStore
     {
         private const string VersionApiUrl = "https://kleestoreapi.vercel.app/api/version";
         private static readonly HttpClient _httpClient;
-        private static readonly Version CurrentVersion = new Version("2.1.0");
+        private static readonly Version CurrentVersion = new Version("2.2.0");
         private const int MaxRetries = 3;
         private const int RetryDelayMs = 1000;
 
