@@ -11,6 +11,7 @@ namespace KleeStore.Models
         public string Description { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
         public string InstallCommand { get; set; } = string.Empty;
+        public string Publisher { get; set; } = string.Empty;
         public int Downloads { get; set; }
         public string DetailsUrl { get; set; } = string.Empty;
         public bool IsInstalled { get; set; }
