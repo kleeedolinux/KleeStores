@@ -54,6 +54,8 @@ namespace KleeStore
                 ContentFrame.Navigate(_browsePage);
                 
                 CheckChocolatey();
+                
+                Task.Run(async () => await AutoUpdate.CheckForUpdates());
             }
             catch (Exception ex)
             {
