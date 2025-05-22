@@ -200,8 +200,7 @@ namespace KleeStore
         
         private void ShowLoadingIndicator(string message)
         {
-            EmptyMessage.Text = message;
-            EmptyMessage.Visibility = Visibility.Visible;
+            LoadingMessage.Text = message;
             ProgressIndicator.Visibility = Visibility.Visible;
         }
         

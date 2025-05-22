@@ -4,6 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:KleeStore"
+      xmlns:fa="http://schemas.fontawesome.io/icons/"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="InstalledPage"
@@ -16,13 +17,22 @@
         </Grid.RowDefinitions>
         
         <!-- Header -->
-        <Border Grid.Row="0" Background="Transparent" Padding="24,16,24,8">
+        <Border Grid.Row="0" Background="Transparent" Padding="24,20,24,12">
             <StackPanel>
-                <TextBlock Text="Installed Packages" FontSize="22" FontWeight="SemiBold" 
-                           Foreground="{StaticResource TextBrush}"/>
-                <TextBlock x:Name="PackageCountLabel" Text="Loading..." 
-                           Margin="0,4,0,0" FontSize="14" 
-                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <fa:FontAwesome Icon="CheckCircle" Foreground="{StaticResource PrimaryBrush}" 
+                                  FontSize="24" Margin="0,0,12,0"/>
+                    <TextBlock Text="Installed Packages" FontSize="24" FontWeight="SemiBold" 
+                               Foreground="{StaticResource TextBrush}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="PackageCountLabel" Text="Loading..." 
+                               Margin="0,4,0,0" FontSize="14" 
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock Text=" packages installed" 
+                               Margin="4,4,0,0" FontSize="14" 
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
             </StackPanel>
         </Border>
         
@@ -39,8 +49,8 @@
                 <!-- Loading Indicator -->
                 <StackPanel x:Name="ProgressIndicator" Visibility="Collapsed" 
                             HorizontalAlignment="Center" Margin="0,80,0,0">
-                    <ProgressBar IsIndeterminate="True" Width="200" Height="6" 
-                                  Background="Transparent" />
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="4" 
+                                  Background="Transparent" Foreground="{StaticResource PrimaryBrush}"/>
                 </StackPanel>
             </Grid>
         </ScrollViewer>

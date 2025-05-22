@@ -4,6 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:KleeStore"
+      xmlns:fa="http://schemas.fontawesome.io/icons/"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="BrowsePage"
@@ -17,9 +18,17 @@
         </Grid.RowDefinitions>
         
         <!-- Header -->
-        <Border Grid.Row="0" Background="Transparent" Padding="24,16,24,8">
-            <TextBlock Text="Browse Software" FontSize="22" FontWeight="SemiBold" 
-                       Foreground="{StaticResource TextBrush}"/>
+        <Border Grid.Row="0" Background="Transparent" Padding="24,20,24,12">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <fa:FontAwesome Icon="Search" Foreground="{StaticResource PrimaryBrush}" 
+                                  FontSize="24" Margin="0,0,12,0"/>
+                    <TextBlock Text="Browse Software" FontSize="24" FontWeight="SemiBold" 
+                               Foreground="{StaticResource TextBrush}"/>
+                </StackPanel>
+                <TextBlock Text="Discover and install new software packages" 
+                           FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
+            </StackPanel>
         </Border>
         
         <!-- Packages List -->
@@ -34,27 +43,53 @@
                 
                 <!-- Loading Indicator -->
                 <StackPanel x:Name="ProgressIndicator" Visibility="Collapsed" 
-                            HorizontalAlignment="Center" Margin="0,80,0,0">
-                    <ProgressBar IsIndeterminate="True" Width="200" Height="6" 
-                                  Background="Transparent" />
+                            HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,40,0,0">
+                    <TextBlock x:Name="LoadingMessage" Text="Initializing..." 
+                               HorizontalAlignment="Center" Margin="0,0,0,16"
+                               FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="4" 
+                                  Background="Transparent" Foreground="{StaticResource PrimaryBrush}"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
         </ScrollViewer>
         
         <!-- Pagination -->
-        <Border Grid.Row="2" BorderBrush="#dfdfdf" BorderThickness="0,1,0,0" Background="White">
-            <Grid Margin="24,12">
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" 
+                BorderThickness="0,1,0,0" Background="White"
+                Effect="{StaticResource DropShadowEffect}">
+            <Grid Margin="24,16">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <Button x:Name="PrevPageButton" Content="Previous" 
                             Style="{StaticResource ActionButton}" 
-                            Margin="0,0,10,0" Click="PrevPageButton_Click"/>
+                            Margin="0,0,12,0" Click="PrevPageButton_Click">
+                        <Button.ContentTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <fa:FontAwesome Icon="ChevronLeft" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </Button.ContentTemplate>
+                    </Button>
+                    
                     <TextBlock x:Name="PageLabel" Text="Page 1" 
                                VerticalAlignment="Center" FontWeight="SemiBold"
                                Margin="16,0" Foreground="{StaticResource TextBrush}"
                                FontSize="14"/>
+                    
                     <Button x:Name="NextPageButton" Content="Next" 
                             Style="{StaticResource ActionButton}" 
-                            Margin="10,0,0,0" Click="NextPageButton_Click"/>
+                            Margin="12,0,0,0" Click="NextPageButton_Click">
+                        <Button.ContentTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                    <fa:FontAwesome Icon="ChevronRight" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </Button.ContentTemplate>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
