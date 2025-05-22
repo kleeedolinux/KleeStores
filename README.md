@@ -1,12 +1,42 @@
 # KleeStore
-![image](https://github.com/user-attachments/assets/f74036af-b756-44a1-a382-6e45dd29782e)
-![image](https://github.com/user-attachments/assets/8d8aa245-3105-49e6-84f1-810c6cac12fd)
+
+<p align="center">
+  <strong>Love KleeStore? Give it a star on GitHub! ⭐ Your support helps!</strong><br/>
+  <a href="https://github.com/kleeedolinux/kleestores">
+    <img src="https://img.shields.io/github/stars/kleeedolinux/kleestores?style=social" alt="GitHub stars">
+  </a>
+</p>
+
+<br>
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="https://github.com/user-attachments/assets/f74036af-b756-44a1-a382-6e45dd29782e" alt="KleeStore Main Interface - Package Browsing" width="400">
+        <br><em>KleeStore: Browsing Chocolatey Packages</em>
+      </td>
+      <td align="center">
+        <img src="https://github.com/user-attachments/assets/8d8aa245-3105-49e6-84f1-810c6cac12fd" alt="KleeStore Package Details and Actions" width="400">
+        <br><em>KleeStore: Package Details and Installation</em>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<br>
 
 Let's cut the crap. Managing software on Windows can be a drag. You've got installers from a dozen different places, half of them trying to sneak in extra junk. Then there's Chocolatey – a godsend for us command-line warriors, taming the chaos one `choco install` at a time. But let's face it, not everyone wants to live in a terminal.
 
 That's where KleeStore, this C# incarnation, barges in. This isn't some corporate, sanitized app store. This is **my personal project, a lean MVP (Minimum Viable Product)**, built because I wanted a slick, no-nonsense GUI for Chocolatey. Something that gets the job done without the usual Windows song and dance.
 
 The mission? Simple. Take the raw power of Chocolatey and give it a face. A clean, modern interface that lets you browse, search, install, and ditch Chocolatey packages without ever *needing* to type `choco -y`. It's about making Chocolatey accessible, maybe even a little bit fun.
+
+---
+
+<p align="center">
+  <strong>Found KleeStore useful? Don't forget to <a href="https://github.com/kleeedolinux/kleestores">star the repository</a>!</strong>
+</p>
 
 ---
 
