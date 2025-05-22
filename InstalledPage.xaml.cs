@@ -25,7 +25,7 @@ namespace KleeStore
             _chocoManager = ChocolateyManager.Instance;
             _scraper = new ChocolateyScraper();
             
-            DisplayInstalledPackages();
+            _ = DisplayInstalledPackages();
         }
         
         public async Task DisplayInstalledPackages(bool forceRefresh = false)
@@ -110,7 +110,7 @@ namespace KleeStore
             var (installedPackages, _) = _chocoManager.GetInstalledPackages();
             
             
-            var tasks = new List<Task<Package?>>();
+            var tasks = new List<Task<Package>>();
             foreach (var package in installedPackages)
             {
                 tasks.Add(Task.Run(async () => 
@@ -155,17 +155,17 @@ namespace KleeStore
             var packages = await Task.WhenAll(tasks);
             
             
-            result.AddRange(packages.Where(p => p != null));
+            result.AddRange(packages);
             
             return result;
         }
         
-        private void HandleInstallationChange(string packageId, bool isInstalled)
+        private async void HandleInstallationChange(string packageId, bool isInstalled)
         {
             if (!isInstalled)
             {
                 _packageCache.TryRemove(packageId, out _);
-                DisplayInstalledPackages(true);
+                await DisplayInstalledPackages(true);
             }
         }
     }

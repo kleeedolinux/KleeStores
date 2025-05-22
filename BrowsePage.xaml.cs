@@ -217,16 +217,16 @@ namespace KleeStore
             HideLoadingIndicator();
         }
         
-        private void HandleInstallationChange(string packageId, bool isInstalled)
+        private async void HandleInstallationChange(string packageId, bool isInstalled)
         {
             
-            _ = LoadPackages();
+            await LoadPackages();
             
             
             var mainWindow = Window.GetWindow(this) as MainWindow;
             if (mainWindow != null)
             {
-                mainWindow.RefreshInstalledPackages();
+                await mainWindow.RefreshInstalledPackages();
             }
         }
         
@@ -259,21 +259,21 @@ namespace KleeStore
             _scraperCts = null;
         }
         
-        private void PrevPageButton_Click(object sender, RoutedEventArgs e)
+        private async void PrevPageButton_Click(object sender, RoutedEventArgs e)
         {
             if (_currentPage > 1)
             {
                 _currentPage--;
-                _ = LoadPackages();
+                await LoadPackages();
             }
         }
         
-        private void NextPageButton_Click(object sender, RoutedEventArgs e)
+        private async void NextPageButton_Click(object sender, RoutedEventArgs e)
         {
             if (_currentPage < _totalPages)
             {
                 _currentPage++;
-                _ = LoadPackages();
+                await LoadPackages();
             }
         }
     }

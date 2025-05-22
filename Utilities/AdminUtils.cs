@@ -32,7 +32,7 @@ namespace KleeStore.Utilities
                 Process.Start(processInfo);
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
                 
                 return false;

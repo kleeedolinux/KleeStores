@@ -86,7 +86,7 @@ namespace KleeStore.Utilities
                 
                 
             }
-            catch (Exception ex)
+            catch
             {
                 
             }
@@ -105,7 +105,7 @@ namespace KleeStore.Utilities
                 using var stream = File.Create(path);
                 encoder.Save(stream);
             }
-            catch (Exception ex)
+            catch
             {
                 
             }
@@ -165,7 +165,7 @@ namespace KleeStore.Utilities
                 {
                     break;
                 }
-                catch (Exception ex)
+                catch
                 {
                     
                     await Task.Delay(500, _cts.Token);
@@ -202,7 +202,7 @@ namespace KleeStore.Utilities
                 
                 return bitmap;
             }
-            catch (Exception ex)
+            catch
             {
                 
                 return CreateDefaultImage();

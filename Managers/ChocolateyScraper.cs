@@ -13,7 +13,6 @@ namespace KleeStore.Managers
     {
         private readonly string _baseApiUrl = "https://kleestoreapi.vercel.app/api/packages";
         private readonly HttpClient _httpClient;
-        private readonly int _packagesPerPage = 20;
         private readonly int _maxRequestsPerMinute = 10;
         private readonly SemaphoreSlim _rateLimitSemaphore;
         private DateTime _lastRequestTime = DateTime.MinValue;

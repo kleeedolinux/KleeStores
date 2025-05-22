@@ -14,9 +14,9 @@ namespace KleeStore
 {
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private readonly ChocolateyManager _chocoManager;
-        private readonly BrowsePage _browsePage;
-        private readonly InstalledPage _installedPage;
+        private readonly ChocolateyManager _chocoManager = null!;
+        private readonly BrowsePage _browsePage = null!;
+        private readonly InstalledPage _installedPage = null!;
         private CancellationTokenSource? _downloadCts;
         private bool _isDownloading;
         
@@ -55,7 +55,7 @@ namespace KleeStore
                 
                 CheckChocolatey();
                 
-                Task.Run(async () => await AutoUpdate.CheckForUpdates());
+                _ = Task.Run(async () => await AutoUpdate.CheckForUpdates());
             }
             catch (Exception ex)
             {
@@ -167,7 +167,7 @@ namespace KleeStore
             
             if (index == 1)
             {
-                RefreshInstalledPackages();
+                RefreshCurrentView();
             }
         }
         
@@ -177,20 +177,20 @@ namespace KleeStore
             
         }
         
-        private void SearchInput_KeyDown(object sender, KeyEventArgs e)
+        private async void SearchInput_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                PerformSearch();
+                await PerformSearch();
             }
         }
         
-        private void SearchButton_Click(object sender, RoutedEventArgs e)
+        private async void SearchButton_Click(object sender, RoutedEventArgs e)
         {
-            PerformSearch();
+            await PerformSearch();
         }
         
-        private void PerformSearch()
+        private async Task PerformSearch()
         {
             
             if (ContentFrame.Content != _browsePage)
@@ -204,7 +204,7 @@ namespace KleeStore
             var query = SearchInput.Text?.Trim() ?? string.Empty;
             
             
-            _browsePage.DisplayPackages(query);
+            await _browsePage.DisplayPackages(query);
         }
         
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
@@ -212,28 +212,29 @@ namespace KleeStore
             RefreshCurrentView();
         }
         
-        private void RefreshCurrentView()
+        private async void RefreshCurrentView()
         {
             if (ContentFrame.Content == _browsePage)
             {
-                StartDownload();
+                await StartDownload();
             }
             else if (ContentFrame.Content == _installedPage)
             {
-                RefreshInstalledPackages();
+                await _installedPage.DisplayInstalledPackages(true);
             }
             
             
             RefreshButton.IsEnabled = false;
-            Task.Delay(300).ContinueWith(_ => Dispatcher.Invoke(() => RefreshButton.IsEnabled = true));
+            await Task.Delay(300);
+            Dispatcher.Invoke(() => RefreshButton.IsEnabled = true);
         }
         
-        public void RefreshInstalledPackages()
+        public async Task RefreshInstalledPackages()
         {
-            _installedPage.DisplayInstalledPackages(true);
+            await _installedPage.DisplayInstalledPackages(true);
         }
         
-        public void StartDownload()
+        public async Task StartDownload()
         {
             if (_isDownloading)
             {
@@ -259,13 +260,13 @@ namespace KleeStore
             _downloadCts?.Cancel();
             _downloadCts = new CancellationTokenSource();
             
-            Task.Factory.StartNew(async () => 
+            await Task.Factory.StartNew(async () => 
             {
                 try
                 {
                     await Task.Delay(100); 
                     
-                    Dispatcher.BeginInvoke(new Action(() => 
+                    await Dispatcher.BeginInvoke(new Action(() => 
                     {
                         UpdateProgress(true, "Connecting to Chocolatey API...", 5);
                     }), System.Windows.Threading.DispatcherPriority.Background);
@@ -281,7 +282,7 @@ namespace KleeStore
                         batchCallback: ProcessScrapedBatch,
                         cancellationToken: _downloadCts.Token);
                     
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    await Dispatcher.BeginInvoke(new Action(() =>
                     {
                         try
                         {
@@ -296,7 +297,7 @@ namespace KleeStore
                 }
                 catch (OperationCanceledException)
                 {
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    await Dispatcher.BeginInvoke(new Action(() =>
                     {
                         try
                         {
@@ -310,7 +311,7 @@ namespace KleeStore
                 }
                 catch (Exception ex)
                 {
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    await Dispatcher.BeginInvoke(new Action(() =>
                     {
                         try
                         {
