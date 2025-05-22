@@ -40,7 +40,7 @@ namespace KleeStore
                 try
                 {
                     var response = await _httpClient.GetStringAsync(VersionApiUrl);
-                    //console.WriteLine($"API Response: {response}");
+                    
                     
                     var options = new JsonSerializerOptions
                     {
@@ -48,20 +48,20 @@ namespace KleeStore
                     };
                     
                     var versionInfo = JsonSerializer.Deserialize<VersionInfo>(response, options);
-                    //console.WriteLine($"Current Version: {CurrentVersion}");
-                    //console.WriteLine($"Latest Version: {versionInfo?.Version}");
-                    //console.WriteLine($"Download URL: {versionInfo?.DownloadUrl}");
-                    //console.WriteLine($"Last Updated: {versionInfo?.LastUpdated}");
+                    
+                    
+                    
+                    
 
                     if (!string.IsNullOrEmpty(versionInfo?.Version))
                     {
                         var versionString = versionInfo.Version.TrimStart('v');
-                        //console.WriteLine($"Cleaned Version String: {versionString}");
+                        
                         
                         if (Version.TryParse(versionString, out Version? latestVersion) && latestVersion != null)
                         {
-                            //console.WriteLine($"Parsed Latest Version: {latestVersion}");
-                            //console.WriteLine($"Version Comparison: {latestVersion.CompareTo(CurrentVersion)}");
+                            
+                            
                             
                             if (latestVersion.CompareTo(CurrentVersion) < 0)
                             {
@@ -82,17 +82,17 @@ namespace KleeStore
                             }
                             else
                             {
-                                //console.WriteLine("No update available - current version is up to date");
+                                
                             }
                         }
                         else
                         {
-                            //console.WriteLine($"Failed to parse version string: {versionString}");
+                            
                         }
                     }
                     else
                     {
-                        //console.WriteLine("Version info is null or empty");
+                        
                     }
                     return;
                 }
