@@ -34,45 +34,47 @@ namespace KleeStore
             }
         }
         
+        private int _processedPackages = 0;
+        
         public MainWindow()
         {
             try
             {
-                //console.WriteLine("Initializing MainWindow...");
+                
                 InitializeComponent();
-                //console.WriteLine("InitializeComponent completed");
+                
                 
                 DataContext = this;
-                //console.WriteLine("DataContext set");
+                
                 
                 
                 _dbManager = DatabaseManager.Instance;
-                //console.WriteLine("DatabaseManager initialized");
+                
                 _chocoManager = ChocolateyManager.Instance;
-                //console.WriteLine("ChocolateyManager initialized");
+                
                 
                 
                 IsAdminButtonVisible = !AdminUtils.IsAdmin() ? Visibility.Visible : Visibility.Collapsed;
-                //console.WriteLine("AdminButton visibility set");
+                
                 
                 
                 _browsePage = new BrowsePage();
-                //console.WriteLine("BrowsePage created");
+                
                 _installedPage = new InstalledPage();
-                //console.WriteLine("InstalledPage created");
+                
                 
                 
                 ContentFrame.Navigate(_browsePage);
-                //console.WriteLine("Navigated to BrowsePage");
+                
                 
                 
                 CheckChocolatey();
-                //console.WriteLine("CheckChocolatey completed");
+                
             }
             catch (Exception ex)
             {
-                //console.WriteLine($"ERROR in MainWindow constructor: {ex.Message}");
-                //console.WriteLine(ex.StackTrace);
+                
+                
                 MessageBox.Show($"Error initializing main window: {ex.Message}\n\n{ex.StackTrace}", 
                                "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -259,10 +261,10 @@ namespace KleeStore
                 return;
             }
             
-            UpdateProgress(true, "Starting download...", 0);
             
-            _downloadCts?.Cancel();
-            _downloadCts = new CancellationTokenSource();
+            _processedPackages = 0;
+            UpdateProgress(true, "Initializing download...", 1);
+            
             
             if (ContentFrame.Content != _browsePage)
             {
@@ -271,62 +273,107 @@ namespace KleeStore
                 NavInstalled.Style = (Style)Application.Current.Resources["NavButton"];
             }
             
-            _isDownloading = true;
             
-            Task.Run(async () =>
+            _isDownloading = true;
+            _downloadCts?.Cancel();
+            _downloadCts = new CancellationTokenSource();
+            
+            
+            Task.Factory.StartNew(async () => 
             {
                 try
                 {
+                    await Task.Delay(100); 
+                    
+                    
+                    Dispatcher.BeginInvoke(new Action(() => 
+                    {
+                        UpdateProgress(true, "Connecting to Chocolatey...", 5);
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                    
                     var scraper = new ChocolateyScraper(_dbManager);
                     
                     await scraper.ScrapePackagesAsync(
-                        maxPages: 1000,
-                        maxWorkers: 5,
-                        batchSize: 5,
+                        maxPages: 500, 
+                        maxWorkers: 2, 
+                        batchSize: 5,  
                         batchCallback: ProcessScrapedBatch,
                         cancellationToken: _downloadCts.Token);
                     
-                    Dispatcher.Invoke(() =>
+                    Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        UpdateProgress(false, "", 0);
-                        _browsePage.DisplayPackages();
-                    });
+                        try
+                        {
+                            UpdateProgress(false, "", 0);
+                            _browsePage.DisplayPackages();
+                        }
+                        catch
+                        {
+                            
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background);
                 }
                 catch (OperationCanceledException)
                 {
-                    Dispatcher.Invoke(() =>
+                    Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        UpdateProgress(false, "", 0);
-                    });
+                        try
+                        {
+                            UpdateProgress(false, "", 0);
+                        }
+                        catch
+                        {
+                            
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background);
                 }
                 catch (Exception ex)
                 {
-                    Dispatcher.Invoke(() =>
+                    Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        UpdateProgress(false, "", 0);
-                        MessageBox.Show(
-                            $"An error occurred while downloading packages: {ex.Message}",
-                            "Error",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error);
-                    });
+                        try
+                        {
+                            UpdateProgress(false, "", 0);
+                        }
+                        catch
+                        {
+                            
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background);
                 }
                 finally
                 {
                     _isDownloading = false;
                 }
-            });
+            }, TaskCreationOptions.LongRunning);
         }
         
         private void ProcessScrapedBatch(List<Package> packages, int currentPage, int totalPages)
         {
-            Dispatcher.Invoke(() =>
+            try
             {
+                _processedPackages += packages.Count;
                 int progressValue = Math.Min((int)((double)currentPage / totalPages * 100), 99);
-                UpdateProgress(true, $"Downloaded {packages.Count} packages from page {currentPage} of {totalPages}", progressValue);
                 
-                _browsePage.ProcessScrapedPackages(packages, currentPage, totalPages);
-            });
+                Dispatcher.Invoke(() =>
+                {
+                    try
+                    {
+                        UpdateProgress(true, $"Downloaded {_processedPackages} packages from page {currentPage} of {totalPages}", progressValue);
+                        
+                        if (_processedPackages % 10 == 0 || currentPage % 5 == 0)
+                        {
+                            _browsePage.ProcessScrapedPackages(packages, currentPage, totalPages);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+            catch
+            {
+            }
         }
         
         private void UpdateProgress(bool visible, string message, int value)

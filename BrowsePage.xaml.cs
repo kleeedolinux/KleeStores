@@ -60,14 +60,28 @@ namespace KleeStore
             {
                 if (string.IsNullOrEmpty(_searchQuery) && _dbManager.GetPackageCount() == 0)
                 {
-                    EmptyMessage.TextWrapping = TextWrapping.Wrap;
-                    EmptyMessage.Text = "No packages found. Click on Refresh button...\n\nFirst time setup in progress. This may take a few minutes. Please wait...";
-                    EmptyMessage.Visibility = Visibility.Visible;
-                    
-                    var mainWindow = Window.GetWindow(this) as MainWindow;
-                    if (mainWindow != null)
+                    try
                     {
-                        Dispatcher.BeginInvoke(new Action(() => mainWindow.StartDownload()));
+                        Dispatcher.Invoke(() =>
+                        {
+                            EmptyMessage.TextWrapping = TextWrapping.Wrap;
+                            EmptyMessage.Text = "No packages found. Click on Refresh button...\n\nFirst time setup in progress. This may take a few minutes. Please wait...";
+                            EmptyMessage.Visibility = Visibility.Visible;
+                        });
+                        
+                        var mainWindow = Window.GetWindow(this) as MainWindow;
+                        if (mainWindow != null)
+                        {
+                            Dispatcher.Invoke(() => mainWindow.StartDownload());
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            EmptyMessage.Text = "Error initializing. Please restart the application.";
+                            EmptyMessage.Visibility = Visibility.Visible;
+                        });
                     }
                 }
                 else
@@ -136,32 +150,50 @@ namespace KleeStore
             }
         }
         
-        public void ProcessScrapedPackages(List<Package> packages, int currentPage, int maxPages)
+        public void ProcessScrapedPackages(List<Package> packages, int currentPage, int totalPages)
         {
-            Dispatcher.Invoke(() =>
+            try
             {
-                if (_currentPage == 1 && string.IsNullOrEmpty(_searchQuery))
+                Dispatcher.Invoke(() =>
                 {
-                    if (EmptyMessage.Visibility == Visibility.Visible)
+                    try
                     {
-                        PackagesContainer.Children.Clear();
-                        EmptyMessage.Visibility = Visibility.Collapsed;
+                        if (_currentPage == 1 && string.IsNullOrEmpty(_searchQuery))
+                        {
+                            if (EmptyMessage.Visibility == Visibility.Visible)
+                            {
+                                PackagesContainer.Children.Clear();
+                                EmptyMessage.Visibility = Visibility.Collapsed;
+                            }
+                            
+                            foreach (var package in packages)
+                            {
+                                try
+                                {
+                                    var card = new PackageCard(package);
+                                    card.InstallationChanged += HandleInstallationChange;
+                                    
+                                    card.MinWidth = 400;
+                                    card.MaxWidth = 800;
+                                    
+                                    PackagesContainer.Children.Add(card);
+                                }
+                                catch
+                                {
+                                }
+                            }
+                            
+                            PageLabel.Text = $"Page {_currentPage} - {PackagesContainer.Children.Count} packages";
+                        }
                     }
-                    
-                    foreach (var package in packages)
+                    catch (Exception ex)
                     {
-                        var card = new PackageCard(package);
-                        card.InstallationChanged += HandleInstallationChange;
-                        
-                        card.MinWidth = 400;
-                        card.MaxWidth = 800;
-                        
-                        PackagesContainer.Children.Add(card);
                     }
-                    
-                    PageLabel.Text = $"Page {_currentPage} - {PackagesContainer.Children.Count} packages";
-                }
-            });
+                }, System.Windows.Threading.DispatcherPriority.Background);
+            }
+            catch
+            {
+            }
         }
         
         public void CancelScraping()

@@ -68,7 +68,7 @@ namespace KleeStore.Utilities
                 foreach (var file in Directory.GetFiles(_cacheDir, "*.png"))
                 {
                     string url = Path.GetFileNameWithoutExtension(file).Replace("_", "/");
-                    url = url.Replace("https/", "https://").Replace("http/", "http://");
+                    url = url.Replace("https/", "https://");
                     
                     if (!_cache.ContainsKey(url))
                     {
@@ -84,11 +84,11 @@ namespace KleeStore.Utilities
                     }
                 }
                 
-                //console.WriteLine($"Loaded {_cache.Count} images from cache");
+                
             }
             catch (Exception ex)
             {
-                //console.WriteLine($"Error loading cached images: {ex.Message}");
+                
             }
         }
         
@@ -107,7 +107,7 @@ namespace KleeStore.Utilities
             }
             catch (Exception ex)
             {
-                //console.WriteLine($"Error saving image to cache: {ex.Message}");
+                
             }
         }
         
@@ -167,7 +167,7 @@ namespace KleeStore.Utilities
                 }
                 catch (Exception ex)
                 {
-                    //console.WriteLine($"Error in download worker: {ex.Message}");
+                    
                     await Task.Delay(500, _cts.Token);
                 }
             }
@@ -204,7 +204,7 @@ namespace KleeStore.Utilities
             }
             catch (Exception ex)
             {
-                //console.WriteLine($"Error downloading image {url}: {ex.Message}");
+                
                 return CreateDefaultImage();
             }
         }

@@ -29,90 +29,95 @@ namespace KleeStore.Managers
             Action<List<Package>, int, int>? batchCallback = null,
             CancellationToken cancellationToken = default)
         {
-            //console.WriteLine("Starting to scrape Chocolatey packages...");
-            
             var allPackages = new List<Package>();
             var currentBatch = new List<Package>();
-            var pageUrls = new List<(int PageNumber, string Url)>();
             
-            for (int pageNumber = 1; pageNumber <= maxPages; pageNumber++)
-            {
-                var url = $"{_baseUrl}?sortOrder=package-download-count&page={pageNumber}&prerelease=False&moderatorQueue=False&moderationStatus=all-statuses";
-                pageUrls.Add((pageNumber, url));
-            }
             
-            using var semaphore = new SemaphoreSlim(maxWorkers);
-            var tasks = new List<Task<List<Package>>>();
-            
-            foreach (var (pageNumber, url) in pageUrls)
-            {
-                await semaphore.WaitAsync(cancellationToken);
-                
-                var task = Task.Run(async () =>
-                {
-                    try
-                    {
-                        return await ScrapePageAsync(pageNumber, url, cancellationToken);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }, cancellationToken);
-                
-                tasks.Add(task);
-            }
-            
+            int pagesPerChunk = 10;
             int completedPages = 0;
             int processedPackages = 0;
             
-            while (tasks.Count > 0)
+            
+            for (int chunkStart = 1; chunkStart <= maxPages; chunkStart += pagesPerChunk)
             {
-                var completedTask = await Task.WhenAny(tasks);
-                tasks.Remove(completedTask);
+                if (cancellationToken.IsCancellationRequested)
+                    break;
                 
-                try
+                int chunkEnd = Math.Min(chunkStart + pagesPerChunk - 1, maxPages);
+                var pageUrls = new List<(int PageNumber, string Url)>();
+                
+                
+                for (int pageNumber = chunkStart; pageNumber <= chunkEnd; pageNumber++)
                 {
-                    var packages = await completedTask;
+                    var url = $"{_baseUrl}?sortOrder=package-download-count&page={pageNumber}&prerelease=False&moderatorQueue=False&moderationStatus=all-statuses";
+                    pageUrls.Add((pageNumber, url));
+                }
+                
+                using var semaphore = new SemaphoreSlim(maxWorkers);
+                var tasks = new List<Task<List<Package>>>();
+                
+                
+                foreach (var (pageNumber, url) in pageUrls)
+                {
+                    await semaphore.WaitAsync(cancellationToken);
                     
-                    if (packages.Count > 0)
+                    var task = Task.Run(async () =>
                     {
-                        lock (allPackages)
+                        try
                         {
-                            allPackages.AddRange(packages);
-                            currentBatch.AddRange(packages);
-                            completedPages++;
-                            processedPackages += packages.Count;
-                            
-                            //console.WriteLine($"Completed page: Added {packages.Count} packages");
-                            
-                            if (batchCallback != null && currentBatch.Count >= batchSize)
+                            return await ScrapePageAsync(pageNumber, url, cancellationToken);
+                        }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
+                    }, cancellationToken);
+                    
+                    tasks.Add(task);
+                }
+                
+                
+                while (tasks.Count > 0)
+                {
+                    var completedTask = await Task.WhenAny(tasks);
+                    tasks.Remove(completedTask);
+                    
+                    try
+                    {
+                        var packages = await completedTask;
+                        
+                        if (packages.Count > 0)
+                        {
+                            lock (allPackages)
                             {
-                                //console.WriteLine($"Batch of {currentBatch.Count} packages ready");
-                                var batchCopy = new List<Package>(currentBatch);
-                                batchCallback(batchCopy, completedPages, maxPages);
-                                currentBatch.Clear();
+                                allPackages.AddRange(packages);
+                                currentBatch.AddRange(packages);
+                                completedPages++;
+                                processedPackages += packages.Count;
+                                
+                                if (batchCallback != null && currentBatch.Count >= batchSize)
+                                {
+                                    var batchCopy = new List<Package>(currentBatch);
+                                    batchCallback(batchCopy, completedPages, maxPages);
+                                    currentBatch.Clear();
+                                }
                             }
                         }
                     }
-                    else
+                    catch (Exception)
                     {
-                        //console.WriteLine("No packages found on page. May have reached the end.");
+                        
                     }
                 }
-                catch (Exception ex)
+                
+                
+                if (batchCallback != null && currentBatch.Count > 0)
                 {
-                    //console.WriteLine($"Error processing page: {ex.Message}");
+                    var batchCopy = new List<Package>(currentBatch);
+                    batchCallback(batchCopy, completedPages, maxPages);
+                    currentBatch.Clear();
                 }
             }
-            
-            if (batchCallback != null && currentBatch.Count > 0)
-            {
-                var batchCopy = new List<Package>(currentBatch);
-                batchCallback(batchCopy, maxPages, maxPages);
-            }
-            
-            //console.WriteLine($"Scraping completed. Found {allPackages.Count} packages.");
             
             if (_dbManager != null && allPackages.Count > 0)
             {
@@ -124,7 +129,7 @@ namespace KleeStore.Managers
         
         private async Task<List<Package>> ScrapePageAsync(int pageNumber, string url, CancellationToken cancellationToken)
         {
-            //console.WriteLine($"Scraping page {pageNumber}: {url}");
+            
             
             try
             {
@@ -140,7 +145,7 @@ namespace KleeStore.Managers
                 
                 if (packageNodes == null || packageNodes.Count == 0)
                 {
-                    //console.WriteLine($"No packages found on page {pageNumber}.");
+                    
                     return new List<Package>();
                 }
                 
@@ -158,7 +163,7 @@ namespace KleeStore.Managers
                     }
                     catch (Exception ex)
                     {
-                        //console.WriteLine($"Error extracting package information: {ex.Message}");
+                        
                     }
                 }
                 
@@ -166,12 +171,12 @@ namespace KleeStore.Managers
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                //console.WriteLine($"Page {pageNumber} not found (404). Stopping.");
+                
                 return new List<Package>();
             }
             catch (Exception ex)
             {
-                //console.WriteLine($"Error for page {pageNumber}: {ex.Message}");
+                
                 return new List<Package>();
             }
         }
@@ -268,7 +273,7 @@ namespace KleeStore.Managers
                 DetailsUrl = detailsUrl
             };
             
-            //console.WriteLine($"Extracted: {name} ({packageId})");
+            
             return package;
         }
         
@@ -276,7 +281,7 @@ namespace KleeStore.Managers
         {
             if (_dbManager == null)
             {
-                //console.WriteLine("No database manager provided. Cannot save packages.");
+                
                 return;
             }
             
@@ -290,7 +295,7 @@ namespace KleeStore.Managers
                 }
             }
             
-            //console.WriteLine($"Successfully saved {successful} out of {packages.Count} packages to database");
+            
         }
     }
 } 

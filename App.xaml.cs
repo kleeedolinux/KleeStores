@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Threading.Tasks;
 
 namespace KleeStore
 {
@@ -9,8 +10,13 @@ namespace KleeStore
         {
             try
             {
+                
+                DispatcherUnhandledException += App_DispatcherUnhandledException;
+                
                 base.OnStartup(e);
-                MainWindow mainWindow = new MainWindow();
+                
+                
+                var mainWindow = new MainWindow();
                 mainWindow.Show();
             }
             catch (Exception ex)
@@ -19,6 +25,14 @@ namespace KleeStore
                                "Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown();
             }
+        }
+        
+        private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            
+            MessageBox.Show($"An error occurred: {e.Exception.Message}", 
+                           "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            e.Handled = true;
         }
     }
 } 

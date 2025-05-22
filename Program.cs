@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Windows;
 
 namespace KleeStore
@@ -10,6 +11,9 @@ namespace KleeStore
         {
             try
             {
+                
+                Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
+                
                 var app = new App();
                 app.InitializeComponent();
                 app.Run();

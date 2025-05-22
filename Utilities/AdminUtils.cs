@@ -34,7 +34,7 @@ namespace KleeStore.Utilities
             }
             catch (Exception ex)
             {
-                //console.WriteLine($"Error running as admin: {ex.Message}");
+                
                 return false;
             }
         }
