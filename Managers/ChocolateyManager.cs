@@ -67,12 +67,10 @@ namespace KleeStore.Managers
                 using var process = Process.Start(psi);
                 process?.WaitForExit();
                 
-
                 if (File.Exists(scriptPath))
                 {
                     File.Delete(scriptPath);
                 }
-                
                 
                 if (IsInstalled())
                 {
@@ -130,6 +128,7 @@ namespace KleeStore.Managers
                             packages.Add(new Package
                             {
                                 Id = parts[0].Trim(),
+                                Name = parts[0].Trim(), 
                                 Version = parts[1].Trim(),
                                 IsInstalled = true,
                                 InstallDate = DateTime.Now
@@ -147,6 +146,106 @@ namespace KleeStore.Managers
             catch (Exception ex)
             {
                 return (new List<Package>(), $"Error getting installed packages: {ex.Message}");
+            }
+        }
+        
+        public (List<Package> UpdateablePackages, string Message) GetUpdatablePackages()
+        {
+            if (!IsInstalled())
+            {
+                return (new List<Package>(), "Chocolatey is not installed");
+            }
+            
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = _chocoPath,
+                    Arguments = "outdated --limit-output",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                
+                using var process = Process.Start(psi);
+                if (process == null)
+                {
+                    return (new List<Package>(), "Failed to start process");
+                }
+                
+                var output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                
+                var updatablePackages = new List<Package>();
+                
+                if (process.ExitCode == 0)
+                {
+                    foreach (var line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var parts = line.Split('|');
+                        if (parts.Length >= 4)
+                        {
+                            updatablePackages.Add(new Package
+                            {
+                                Id = parts[0].Trim(),
+                                Name = parts[0].Trim(), 
+                                Version = parts[1].Trim(),
+                                AvailableVersion = parts[2].Trim(),
+                                IsInstalled = true,
+                                InstallDate = DateTime.Now,
+                                CanUpdate = true
+                            });
+                        }
+                    }
+                    
+                    return (updatablePackages, "Success");
+                }
+                else
+                {
+                    return (new List<Package>(), $"Failed to get updatable packages: Exit code {process.ExitCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                return (new List<Package>(), $"Error getting updatable packages: {ex.Message}");
+            }
+        }
+        
+        public (bool Success, string Message) UpgradeAllPackages()
+        {
+            if (!IsInstalled())
+            {
+                return (false, "Chocolatey is not installed");
+            }
+            
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-Command \"Start-Process '{_chocoPath}' -ArgumentList 'upgrade all -y' -Verb RunAs -Wait\"",
+                    UseShellExecute = true,
+                    Verb = "runas"
+                };
+                
+                using var process = Process.Start(psi);
+                process?.WaitForExit();
+                
+                
+                var (outdatedPackages, _) = GetUpdatablePackages();
+                
+                if (outdatedPackages.Count == 0)
+                {
+                    return (true, "Successfully upgraded all packages");
+                }
+                else
+                {
+                    return (false, $"Upgrade process completed, but {outdatedPackages.Count} packages still need updates. They may require manual intervention.");
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Error upgrading all packages: {ex.Message}");
             }
         }
         
@@ -177,7 +276,6 @@ namespace KleeStore.Managers
                 using var process = Process.Start(psi);
                 process?.WaitForExit();
                 
-                    
                 (installedPackages, _) = GetInstalledPackages();
                 
                 if (installedPackages.Any(p => p.Id.Equals(packageId, StringComparison.OrdinalIgnoreCase)))
@@ -278,6 +376,7 @@ namespace KleeStore.Managers
                             packages.Add(new Package
                             {
                                 Id = parts[0].Trim(),
+                                Name = parts[0].Trim(), 
                                 Version = parts[1].Trim()
                             });
                         }

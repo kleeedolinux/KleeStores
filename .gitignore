@@ -29,7 +29,7 @@ bld/
 # JetBrains Rider
 .idea/
 *.sln.iml
-
+*.py
 # NuGet Packages
 *.nupkg
 *.snupkg

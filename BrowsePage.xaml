@@ -24,12 +24,21 @@
         
         <!-- Packages List -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="PackagesContainer" Margin="24,8,24,16">
-                <TextBlock x:Name="EmptyMessage" Text="No packages found" 
-                           HorizontalAlignment="Center" Margin="0,60,0,0" 
-                           FontSize="17" Foreground="{StaticResource TextSecondaryBrush}" 
-                           Visibility="Collapsed"/>
-            </StackPanel>
+            <Grid>
+                <StackPanel x:Name="PackagesContainer" Margin="24,8,24,16">
+                    <TextBlock x:Name="EmptyMessage" Text="No packages found" 
+                               HorizontalAlignment="Center" Margin="0,60,0,0" 
+                               FontSize="17" Foreground="{StaticResource TextSecondaryBrush}" 
+                               Visibility="Collapsed" TextWrapping="Wrap"/>
+                </StackPanel>
+                
+                <!-- Loading Indicator -->
+                <StackPanel x:Name="ProgressIndicator" Visibility="Collapsed" 
+                            HorizontalAlignment="Center" Margin="0,80,0,0">
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="6" 
+                                  Background="Transparent" />
+                </StackPanel>
+            </Grid>
         </ScrollViewer>
         
         <!-- Pagination -->

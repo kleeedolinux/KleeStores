@@ -14,7 +14,6 @@ namespace KleeStore
 {
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private readonly DatabaseManager _dbManager;
         private readonly ChocolateyManager _chocoManager;
         private readonly BrowsePage _browsePage;
         private readonly InstalledPage _installedPage;
@@ -40,41 +39,24 @@ namespace KleeStore
         {
             try
             {
-                
                 InitializeComponent();
-                
                 
                 DataContext = this;
                 
-                
-                
-                _dbManager = DatabaseManager.Instance;
-                
                 _chocoManager = ChocolateyManager.Instance;
                 
-                
-                
                 IsAdminButtonVisible = !AdminUtils.IsAdmin() ? Visibility.Visible : Visibility.Collapsed;
-                
-                
                 
                 _browsePage = new BrowsePage();
                 
                 _installedPage = new InstalledPage();
                 
-                
-                
                 ContentFrame.Navigate(_browsePage);
                 
-                
-                
                 CheckChocolatey();
-                
             }
             catch (Exception ex)
             {
-                
-                
                 MessageBox.Show($"Error initializing main window: {ex.Message}\n\n{ex.StackTrace}", 
                                "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -405,12 +387,7 @@ namespace KleeStore
         {
             base.OnClosing(e);
             
-            
             _downloadCts?.Cancel();
-            
-            
-            _dbManager.Close();
-            
             
             ImageCache.Instance.Stop();
         }

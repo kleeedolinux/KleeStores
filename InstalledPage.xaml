@@ -17,18 +17,32 @@
         
         <!-- Header -->
         <Border Grid.Row="0" Background="Transparent" Padding="24,16,24,8">
-            <TextBlock Text="Installed Packages" FontSize="22" FontWeight="SemiBold" 
-                       Foreground="{StaticResource TextBrush}"/>
+            <StackPanel>
+                <TextBlock Text="Installed Packages" FontSize="22" FontWeight="SemiBold" 
+                           Foreground="{StaticResource TextBrush}"/>
+                <TextBlock x:Name="PackageCountLabel" Text="Loading..." 
+                           Margin="0,4,0,0" FontSize="14" 
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+            </StackPanel>
         </Border>
         
         <!-- Installed Packages List -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="InstalledContainer" Margin="24,8,24,16">
-                <TextBlock x:Name="EmptyMessage" Text="No installed packages found" 
-                           HorizontalAlignment="Center" Margin="0,60,0,0" 
-                           FontSize="17" Foreground="{StaticResource TextSecondaryBrush}" 
-                           Visibility="Collapsed"/>
-            </StackPanel>
+            <Grid>
+                <StackPanel x:Name="InstalledContainer" Margin="24,8,24,16">
+                    <TextBlock x:Name="EmptyMessage" Text="No installed packages found" 
+                               HorizontalAlignment="Center" Margin="0,60,0,0" 
+                               FontSize="17" Foreground="{StaticResource TextSecondaryBrush}" 
+                               Visibility="Collapsed" TextWrapping="Wrap"/>
+                </StackPanel>
+                
+                <!-- Loading Indicator -->
+                <StackPanel x:Name="ProgressIndicator" Visibility="Collapsed" 
+                            HorizontalAlignment="Center" Margin="0,80,0,0">
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="6" 
+                                  Background="Transparent" />
+                </StackPanel>
+            </Grid>
         </ScrollViewer>
     </Grid>
 </Page> 

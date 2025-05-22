@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using KleeStore.Managers;
 using KleeStore.Models;
 
@@ -13,6 +16,7 @@ namespace KleeStore
         private readonly ChocolateyManager _chocoManager;
         private readonly ChocolateyScraper _scraper;
         private bool _isRefreshing;
+        private readonly ConcurrentDictionary<string, Package> _packageCache = new ConcurrentDictionary<string, Package>();
         
         public InstalledPage()
         {
@@ -36,6 +40,8 @@ namespace KleeStore
                 
                 EmptyMessage.Text = "Loading installed packages...";
                 EmptyMessage.Visibility = Visibility.Visible;
+                ProgressIndicator.Visibility = Visibility.Visible;
+                PackageCountLabel.Text = "Loading...";
                 
                 var installedPackages = await GetInstalledPackagesAsync();
                 
@@ -43,15 +49,32 @@ namespace KleeStore
                 {
                     EmptyMessage.Text = "No installed packages found";
                     EmptyMessage.Visibility = Visibility.Visible;
+                    PackageCountLabel.Text = "No packages installed";
                     return;
                 }
                 
                 EmptyMessage.Visibility = Visibility.Collapsed;
+                PackageCountLabel.Text = $"{installedPackages.Count} package{(installedPackages.Count != 1 ? "s" : "")} installed";
+                
+                
+                var (updatablePackages, _) = _chocoManager.GetUpdatablePackages();
+                var updatableDict = new Dictionary<string, Package>(StringComparer.OrdinalIgnoreCase);
+                
+                foreach (var package in updatablePackages)
+                {
+                    updatableDict[package.Id] = package;
+                }
                 
                 foreach (var package in installedPackages)
                 {
                     try
                     {
+                        if (updatableDict.TryGetValue(package.Id, out var updatablePackage))
+                        {
+                            package.CanUpdate = true;
+                            package.AvailableVersion = updatablePackage.AvailableVersion;
+                        }
+                        
                         var card = new PackageCard(package);
                         card.InstallationChanged += HandleInstallationChange;
                         
@@ -70,10 +93,13 @@ namespace KleeStore
             {
                 EmptyMessage.Text = $"Error loading installed packages: {ex.Message}";
                 EmptyMessage.Visibility = Visibility.Visible;
+                EmptyMessage.Foreground = new SolidColorBrush(Colors.Red);
+                PackageCountLabel.Text = "Error loading packages";
                 Console.WriteLine($"Error displaying installed packages: {ex.Message}");
             }
             finally
             {
+                ProgressIndicator.Visibility = Visibility.Collapsed;
                 _isRefreshing = false;
             }
         }
@@ -83,37 +109,53 @@ namespace KleeStore
             var result = new List<Package>();
             var (installedPackages, _) = _chocoManager.GetInstalledPackages();
             
+            
+            var tasks = new List<Task<Package?>>();
             foreach (var package in installedPackages)
             {
-                try
+                tasks.Add(Task.Run(async () => 
                 {
-                    
-                    var apiPackage = await _scraper.GetPackageByIdAsync(package.Id);
-                    
-                    if (apiPackage != null)
+                    try
                     {
                         
-                        apiPackage.IsInstalled = true;
-                        apiPackage.InstallDate = DateTime.Now; 
-                        result.Add(apiPackage);
-                    }
-                    else
-                    {
+                        if (_packageCache.TryGetValue(package.Id, out var cachedPackage))
+                        {
+                            cachedPackage.IsInstalled = true;
+                            cachedPackage.InstallDate = package.InstallDate ?? DateTime.Now;
+                            return cachedPackage;
+                        }
+                        
+                        
+                        var apiPackage = await _scraper.GetPackageByIdAsync(package.Id);
+                        
+                        if (apiPackage != null)
+                        {
+                            apiPackage.IsInstalled = true;
+                            apiPackage.InstallDate = package.InstallDate ?? DateTime.Now;
+                            _packageCache.TryAdd(package.Id, apiPackage);
+                            return apiPackage;
+                        }
+                        
                         
                         package.IsInstalled = true;
-                        package.InstallDate = DateTime.Now;
-                        result.Add(package);
+                        package.InstallDate = package.InstallDate ?? DateTime.Now;
+                        return package;
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error fetching package details for {package.Id}: {ex.Message}");
-                    
-                    package.IsInstalled = true;
-                    package.InstallDate = DateTime.Now;
-                    result.Add(package);
-                }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error fetching package details for {package.Id}: {ex.Message}");
+                        package.IsInstalled = true;
+                        package.InstallDate = package.InstallDate ?? DateTime.Now;
+                        return package;
+                    }
+                }));
             }
+            
+            
+            var packages = await Task.WhenAll(tasks);
+            
+            
+            result.AddRange(packages.Where(p => p != null));
             
             return result;
         }
@@ -122,6 +164,7 @@ namespace KleeStore
         {
             if (!isInstalled)
             {
+                _packageCache.TryRemove(packageId, out _);
                 DisplayInstalledPackages(true);
             }
         }

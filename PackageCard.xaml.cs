@@ -13,7 +13,6 @@ namespace KleeStore
     {
         private Package _package;
         private readonly ChocolateyManager _chocoManager;
-        private readonly DatabaseManager _dbManager;
         
         public event Action<string, bool>? InstallationChanged;
         
@@ -59,26 +58,31 @@ namespace KleeStore
             
             _package = package;
             _chocoManager = ChocolateyManager.Instance;
-            _dbManager = DatabaseManager.Instance;
-            
             
             PackageName = package.Name;
             PackageVersion = package.Version;
             PackageDescription = package.Description;
             DownloadsCount = package.Downloads.ToString("N0");
             
-            
             UpdateButtonState();
             
-            
             SetDefaultImage();
-            
             
             if (!string.IsNullOrEmpty(package.ImageUrl) && package.ImageUrl != "No image")
             {
                 var imageCache = ImageCache.Instance;
                 imageCache.QueueDownload(package.ImageUrl, package.Id);
                 imageCache.ImageReady += ImageCache_ImageReady;
+            }
+            
+            if (package.CanUpdate && !string.IsNullOrEmpty(package.AvailableVersion))
+            {
+                UpdateButton.Visibility = Visibility.Visible;
+                UpdateButton.Content = $"Update to {package.AvailableVersion}";
+            }
+            else
+            {
+                UpdateButton.Visibility = Visibility.Collapsed;
             }
         }
         
@@ -94,24 +98,20 @@ namespace KleeStore
         
         private void SetDefaultImage()
         {
-            
             var drawingVisual = new DrawingVisual();
             
             using (var context = drawingVisual.RenderOpen())
             {
-                
                 context.DrawRectangle(
                     Brushes.Transparent,
                     null,
                     new Rect(0, 0, 64, 64));
-                
                 
                 context.DrawRoundedRectangle(
                     new SolidColorBrush(Color.FromRgb(0x35, 0x84, 0xE4)), 
                     null,
                     new Rect(12, 12, 40, 40),
                     6, 6);
-                
                 
                 var pen = new Pen(Brushes.White, 2);
                 context.DrawLine(pen, new Point(32, 12), new Point(32, 52));
@@ -143,18 +143,15 @@ namespace KleeStore
             {
                 if (_package.IsInstalled)
                 {
-                    
                     var (success, message) = _chocoManager.UninstallPackage(_package.Id);
                     if (success)
                     {
                         _package.IsInstalled = false;
-                        _dbManager.UpdatePackageInstallationStatus(_package.Id, false);
                         ShowMessage("Success", $"Successfully uninstalled {_package.Id}");
                         InstallationChanged?.Invoke(_package.Id, false);
                     }
                     else
                     {
-                        
                         if (message.Contains("privileges") && !AdminUtils.IsAdmin())
                         {
                             var result = MessageBox.Show(
@@ -175,20 +172,17 @@ namespace KleeStore
                 }
                 else
                 {
-                    
                     var (success, message) = _chocoManager.InstallPackage(_package.Id);
                     if (success)
                     {
                         var installDate = DateTime.Now.ToString("o");
                         _package.IsInstalled = true;
                         _package.InstallDate = DateTime.Now;
-                        _dbManager.UpdatePackageInstallationStatus(_package.Id, true, installDate);
                         ShowMessage("Success", $"Successfully installed {_package.Id}");
                         InstallationChanged?.Invoke(_package.Id, true);
                     }
                     else
                     {
-                        
                         if (message.Contains("privileges") && !AdminUtils.IsAdmin())
                         {
                             var result = MessageBox.Show(
@@ -208,8 +202,56 @@ namespace KleeStore
                     }
                 }
                 
-                
                 UpdateButtonState();
+            }
+            catch (Exception ex)
+            {
+                ShowMessage("Error", $"An error occurred: {ex.Message}");
+            }
+        }
+        
+        private void UpdateButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_package.Id))
+            {
+                ShowMessage("Error", "Package ID not found.");
+                return;
+            }
+            
+            try
+            {
+                var (success, message) = _chocoManager.UpgradePackage(_package.Id);
+                if (success)
+                {
+                    _package.Version = _package.AvailableVersion;
+                    _package.AvailableVersion = string.Empty;
+                    _package.CanUpdate = false;
+                    
+                    UpdateButton.Visibility = Visibility.Collapsed;
+                    PackageVersion = _package.Version;
+                    
+                    ShowMessage("Success", $"Successfully updated {_package.Id} to version {_package.Version}");
+                    InstallationChanged?.Invoke(_package.Id, true);
+                }
+                else
+                {
+                    if (message.Contains("privileges") && !AdminUtils.IsAdmin())
+                    {
+                        var result = MessageBox.Show(
+                            $"Failed to update {_package.Id}. Do you want to restart as administrator?",
+                            "Admin Privileges Required",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+                        
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            AdminUtils.RunAsAdmin();
+                            return;
+                        }
+                    }
+                    
+                    ShowMessage("Error", $"Failed to update: {message}");
+                }
             }
             catch (Exception ex)
             {
