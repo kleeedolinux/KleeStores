@@ -60,13 +60,15 @@ namespace KleeStore
             {
                 if (string.IsNullOrEmpty(_searchQuery) && _dbManager.GetPackageCount() == 0)
                 {
-                    
-                    EmptyMessage.Text = "No packages found. Starting automatic download...";
+                    EmptyMessage.TextWrapping = TextWrapping.Wrap;
+                    EmptyMessage.Text = "No packages found. Click on Refresh button...\n\nFirst time setup in progress. This may take a few minutes. Please wait...";
                     EmptyMessage.Visibility = Visibility.Visible;
                     
-                    
                     var mainWindow = Window.GetWindow(this) as MainWindow;
-                    mainWindow?.StartDownload();
+                    if (mainWindow != null)
+                    {
+                        Dispatcher.BeginInvoke(new Action(() => mainWindow.StartDownload()));
+                    }
                 }
                 else
                 {

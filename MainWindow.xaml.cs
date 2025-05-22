@@ -259,13 +259,10 @@ namespace KleeStore
                 return;
             }
             
-            
             UpdateProgress(true, "Starting download...", 0);
-            
             
             _downloadCts?.Cancel();
             _downloadCts = new CancellationTokenSource();
-            
             
             if (ContentFrame.Content != _browsePage)
             {
@@ -276,7 +273,6 @@ namespace KleeStore
             
             _isDownloading = true;
             
-            
             Task.Run(async () =>
             {
                 try
@@ -286,20 +282,13 @@ namespace KleeStore
                     await scraper.ScrapePackagesAsync(
                         maxPages: 1000,
                         maxWorkers: 5,
-                        batchSize: 10,
+                        batchSize: 5,
                         batchCallback: ProcessScrapedBatch,
                         cancellationToken: _downloadCts.Token);
                     
                     Dispatcher.Invoke(() =>
                     {
                         UpdateProgress(false, "", 0);
-                        MessageBox.Show(
-                            "Package download completed successfully.",
-                            "Success",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Information);
-                        
-                        
                         _browsePage.DisplayPackages();
                     });
                 }
@@ -308,11 +297,6 @@ namespace KleeStore
                     Dispatcher.Invoke(() =>
                     {
                         UpdateProgress(false, "", 0);
-                        MessageBox.Show(
-                            "Package download was cancelled.",
-                            "Cancelled",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Information);
                     });
                 }
                 catch (Exception ex)
@@ -338,10 +322,8 @@ namespace KleeStore
         {
             Dispatcher.Invoke(() =>
             {
-                
                 int progressValue = Math.Min((int)((double)currentPage / totalPages * 100), 99);
-                UpdateProgress(true, $"Scraped {currentPage} of {totalPages} pages ({packages.Count} packages)", progressValue);
-                
+                UpdateProgress(true, $"Downloaded {packages.Count} packages from page {currentPage} of {totalPages}", progressValue);
                 
                 _browsePage.ProcessScrapedPackages(packages, currentPage, totalPages);
             });
