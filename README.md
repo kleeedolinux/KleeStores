@@ -1,5 +1,5 @@
 # KleeStore
-![image](https://github.com/user-attachments/assets/4527a75e-716d-4f3e-aaf1-cf11d5fcf0df)
+![image](https://github.com/user-attachments/assets/f74036af-b756-44a1-a382-6e45dd29782e)
 ![image](https://github.com/user-attachments/assets/8d8aa245-3105-49e6-84f1-810c6cac12fd)
 
 Let's cut the crap. Managing software on Windows can be a drag. You've got installers from a dozen different places, half of them trying to sneak in extra junk. Then there's Chocolatey – a godsend for us command-line warriors, taming the chaos one `choco install` at a time. But let's face it, not everyone wants to live in a terminal.
@@ -20,7 +20,7 @@ Look, if you're already a Choco-pro, you might not *need* this. But if you've ev
 
 KleeStore, in its current C# form, isn't trying to be everything to everyone. It's focused. You can **cruise through the Chocolatey community's package ocean**, or if you know what you're after, the **search bar will hunt it down**. Each package shows you the vital stats: version, what the heck it does (description), and sometimes how many other brave souls have downloaded it.
 
-When you're ready to pull the trigger, **installing and uninstalling are just a click away**. No cryptic commands, no second-guessing. And to see the army of apps Chocolatey is already commanding on your rig, there's a dedicated **"Installed Packages" view**. Behind the scenes, KleeStore talks to the Chocolatey community site to **keep its package list fresh**, and it's smart enough to **cache package data and images** (using good ol' SQLite) so it doesn't have to fetch everything, every single time. The UI itself? I'm aiming for **clean and modern**, built with .NET (*you can slot in your specific UI tech like WPF or MAUI here if you want*), something that doesn't look like it crawled out of Windows XP.
+When you're ready to pull the trigger, **installing and uninstalling are just a click away**. No cryptic commands, no second-guessing. And to see the army of apps Chocolatey is already commanding on your rig, there's a dedicated **"Installed Packages" view**. Behind the scenes, KleeStore talks to the KleeStore API to **keep its package list fresh**, and it's smart enough to **cache package data and images** so it doesn't have to fetch everything, every single time. The UI itself? I'm aiming for **clean and modern**, built with WPF, something that doesn't look like it crawled out of Windows XP.
 
 ---
 
@@ -29,7 +29,7 @@ When you're ready to pull the trigger, **installing and uninstalling are just a 
 To get KleeStore to join your rebellion, you'll need:
 
 *   **Windows 10 or a newer model.**
-*   The **.NET 6.0 Runtime** (or newer, if I've bumped the target).
+*   The **.NET 7.0 Runtime** (or newer, if I've bumped the target).
 *   **Chocolatey itself.** If you're a Choco-virgin, KleeStore will try to hold your hand through the installation.
 *   **Admin rights.** Chocolatey needs to be the boss to install or rip out software. KleeStore will bug you (or Windows UAC will) when it's time to escalate.
 
@@ -70,13 +70,13 @@ Want to peek under the hood or tinker with the C# guts?
 
 ## Making KleeStore Dance (Usage)
 
-It’s not rocket science.
+It's not rocket science.
 
 The **"Browse" tab** is your gateway to Choco-land. Scroll, search, explore. Pagination at the bottom stops your scroll wheel from crying. Found something you want? Smash that **"Install" button**. KleeStore will handle the admin prompts.
 
 Got regrets? Or just cleaning house? The **"Installed" tab** shows your current Choco-managed hoard. The **"Uninstall" button** is your friend there.
 
-Want the freshest list of what's out there? The **"Refresh" button** pings Chocolatey's servers. Your "Installed" list also usually updates to show what's *really* on your machine.
+Want the freshest list of what's out there? The **"Refresh" button** pings the KleeStore API. Your "Installed" list also usually updates to show what's *really* on your machine.
 
 ---
 
@@ -91,9 +91,9 @@ This whole shebang is under the **MIT License**. Go read the `LICENSE` file if y
 This project stands on the shoulders of giants (and some handy libraries):
 
 *   **[Chocolatey](https://chocolatey.org/):** The undisputed king. KleeStore is just its humble servant.
-*   **[HtmlAgilityPack](https://html-agility-pack.net/):** For when you need to beat HTML into submission to get the data you need.
-*   **[System.Data.SQLite](https://system.data.sqlite.org/) (or its cousin, Microsoft.Data.Sqlite):** For stashing data locally so things run a bit faster.
-*   *(If you're using other cool C# stuff like MahApps.Metro, ReactiveUI, Serilog, etc., give them a shout-out here!)*
+*   **[KleeStore API](https://kleestoreapi.vercel.app/):** The backend that powers the package discovery and metadata.
+*   **[WPF](https://docs.microsoft.com/en-us/dotnet/desktop/wpf/):** For crafting a modern, responsive UI that doesn't suck.
+*   **[System.Text.Json](https://docs.microsoft.com/en-us/dotnet/api/system.text.json):** For parsing API responses without breaking a sweat.
 
 ---
 
